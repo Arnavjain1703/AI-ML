@@ -2,6 +2,23 @@
 
 ---
 
+## Gradient Descent vs. Optimizers — What's the Difference?
+
+| | Gradient Descent | Optimizers |
+|--|--|--|
+| **What it is** | The fundamental algorithm: move weights in the direction that reduces loss | Smarter strategies built on top of gradient descent |
+| **Update rule** | `w = w - α × gradient` (one fixed learning rate for everything) | Add momentum, adaptive per-parameter learning rates, etc. |
+| **Analogy** | Walking downhill with a fixed step size | Walking downhill with speed-up on slopes, careful steps on rough terrain |
+
+Think of it this way:
+
+- **Gradient Descent** = the basic recipe (compute slope, take a step downhill)
+- **Optimizers (Adam, RMSProp, Momentum, etc.)** = enhanced versions of that recipe that solve real-world problems like oscillation, saddle points, and slow convergence
+
+Every optimizer still uses gradients — they just use them more cleverly. All optimizers *are* gradient descent, but plain "vanilla" gradient descent is the simplest optimizer with no enhancements — it's the baseline that others improve upon.
+
+---
+
 ## What is an Optimizer?
 
 An optimizer is an algorithm that decides **how to update weights** based on the gradients computed during backpropagation. Plain gradient descent works, but smarter optimizers converge faster and handle tricky loss landscapes better.

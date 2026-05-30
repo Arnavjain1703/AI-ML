@@ -97,6 +97,36 @@ Training a neural network is an iterative loop:
 | **Hyperparameters** | Settings you choose: learning rate, batch size, number of layers |
 | **Inference** | Using a trained model to make predictions on new data |
 
+### Understanding Epoch in Detail
+
+**An epoch = one complete pass through your entire training dataset.**
+
+Imagine you have 1000 training images. Once the network has seen all 1000 images and updated its weights accordingly — that's 1 epoch done.
+
+**Analogy:** Think of studying for an exam. You have a textbook with 10 chapters.
+- Reading the entire textbook once = **1 epoch**
+- Reading it a second time (you learn more details) = **2 epochs**
+- Reading it 50 times = **50 epochs**
+
+Each time through, the model picks up patterns it missed before.
+
+**How epoch, batch, and iteration connect:**
+
+Say you have 1000 samples and a batch size of 100:
+
+```
+1 epoch = 1000 / 100 = 10 iterations (10 weight updates)
+
+Epoch 1:  [batch1] → update → [batch2] → update → ... → [batch10] → update  ← done
+Epoch 2:  shuffle data, repeat all 10 batches again
+...
+Epoch 50: by now the model has seen every example 50 times
+```
+
+**Why multiple epochs?** One pass isn't enough — the model needs repeated exposure to learn the patterns properly. It's like the difference between reading a textbook once vs. studying it multiple times before an exam.
+
+**How many epochs?** Typically 10–100+, depending on the problem. You stop when validation loss stops improving (early stopping).
+
 ---
 
 ## A Minimal Example
