@@ -1,22 +1,50 @@
-# Session Notes — AI/ML Certification Course (Masterclass: EDA for Machine Learning)
+# Session Notes — AI/ML Certification Course (Session 2)
 **Instructor:** Mayukh Ghosh
-**Session 2:** Exploratory Data Analysis from an ML/industry perspective + the road to the first model
+**Session 2:** Exploratory Data Analysis (EDA) — from raw data to a model-ready dataset
+
+> **How to read this file.** Every technical word is defined the first time it appears. Sections 1–8 build the vocabulary; sections 9–20 are the actual EDA workflow; section 21 puts the whole thing together as one ordered checklist. If you only read one section, read **§21**.
 
 ---
 
-## 1. Where This Session Fits — EDA vs Data Preprocessing
+## 0. The Vocabulary You Need First
 
-This was a **one-off guest masterclass**, not a change of instructor. Prof. Durga Toshniwal continues the main syllabus from Session 3 (confirmed to Rashmi, Chandrasekhar and Jithu).
+Everything in this session is built from these eight words. Learn these and the rest of the file reads easily.
 
-### Q&A — Jithu: *"Isn't preprocessing different from EDA?"*
-**The correction was accepted as technically right.**
+| Term | Plain-English meaning | Example |
+|---|---|---|
+| **Variable** | One **column** in your data | `Age`, `Salary` |
+| **Observation** | One **row** in your data | one customer, one employee |
+| **Target variable (Y)** | The column you are **trying to predict** | `AmountSpent` |
+| **Predictor / feature (X)** | A column you use **to make** that prediction | `Age`, `Salary`, `Location` |
+| **Distribution** | The **shape** of a column — where its values pile up and how they spread out | "most salaries are ₹10–20 L, a few are much higher" |
+| **Outlier** | A value that is **very far from the rest** | a ₹75 L salary among ₹14–20 L salaries |
+| **Missing value** | An **empty cell** | a customer with no age recorded |
+| **Univariate / Bivariate** | Looking at **one** column at a time / **two** columns **together** | histogram / scatterplot |
 
-| Term | Meaning |
-|---|---|
-| **EDA** | **Exploration** — understanding what the data is |
-| **Data Preprocessing** | **Preparation** — putting the data into a usable state |
+```
+                     A DATASET
+              ┌──────┬──────┬────────┬─────────────┐
+              │ Age  │Salary│Location│ AmountSpent │  ← VARIABLES (columns)
+              ├──────┼──────┼────────┼─────────────┤
+   OBSERVA-   │  28  │  14  │  Far   │     100     │
+   TIONS      │  32  │  19  │  Near  │      45     │
+   (rows)     │  35  │  20  │  Far   │     130     │
+              └──────┴──────┴────────┴─────────────┘
+                └──── PREDICTORS (X) ───┘  └── TARGET (Y) ──┘
+```
 
-One follows the other. **But:** *"the industry these days has clubbed everything into EDA"* — so in practice they are interleaved, and this session treats them together.
+---
+
+## 1. What is EDA, and How is it Different from Preprocessing?
+
+### The two words
+
+| Term | What it means | The question it answers |
+|---|---|---|
+| **EDA** (Exploratory Data Analysis) | **Exploring** the data — looking at it, plotting it, understanding it | *"What do I actually have?"* |
+| **Data Preprocessing** | **Preparing** the data — fixing, filling, capping, rescaling | *"How do I make it usable?"* |
+
+Strictly, exploration comes first and preparation follows. **But in industry the two words are used interchangeably** — people say "EDA" to mean both. This session treats them as one continuous activity, because in practice you loop between them.
 
 ```
    Strictly speaking:   EDA (explore) ──► Preprocessing (prepare) ──► Model
@@ -24,145 +52,118 @@ One follows the other. **But:** *"the industry these days has clubbed everything
    Industry usage:      └─────────── all called "EDA" ───────────┘
 ```
 
-### It was also not a "theory vs practical" split
-Asked whether this session was the practical counterpart to Session 1's theory → **no**. The framing was *"how these ideas are actually used."*
+*(This distinction came up as a question in class and the correction was accepted as technically right.)*
+
+### Why this matters so much
+EDA takes **60–70% of the total time** on a real project. Not because it's slow, but because **the work multiplies by the number of columns**:
+
+```
+    1 column   →  1× the work  (plot it + check missing + check outliers + decide transform)
+
+   50 columns  →  50× that work
+                  + 49 more plots, each column against the target   ← this is where time goes
+```
+
+Only one operation in the whole workflow is "do it once for everything" — scaling (§17). Everything else is **per column**.
 
 ---
 
-## 2. Instructor Background — Mayukh Ghosh
-
-```
-Mayukh Ghosh
-├── Base: Calcutta (Kolkata) → Bangalore, 10+ years
-├── Core work: TRAINING — 11–12 years total
-│     ├── B2C space (individual learners)
-│     ├── B2B space (organisation-facing)
-│     └── Corporate training (heavy volume)
-├── Program leadership
-│     ├── Headed a program for one of the IIMs
-│     └── Headed a University of Chicago collaborative program (~6–7 yrs ago)
-└── Consulting (secondary — "a bit of consulting… let me be very honest")
-      ├── Aditya Birla Group
-      ├── Adani Group
-      └── 1–2 multinationals + "many other places"
-```
-
-**Program name confirmed on the call:** *"a progression to generative AI"* — the name signals a **staged progression** that builds up *to* GenAI rather than starting there.
-
-> **A trait worth noting:** he flags his own honesty markers (*"let me be very honest"*, *"to be honest"*) precisely when giving an unvarnished opinion rather than the standard narrative — the scope of his consulting, the agentic-AI reliability verdict (§30), and the *"not a resounding universal yes"* on data reduction (§29). **He systematically resists hype.**
-
----
-
-## 3. Why Statistics is the Gate, Not the Garnish
+## 2. Why You Cannot Skip Statistics
 
 > *"Doing EDA is hazardous, it's risky, if you're vague about normal distribution, correlation, skewness. You will misinterpret a lot of things."*
 
+The reason is simple: **EDA is a sequence of judgement calls**, and every one of those calls is a statistics question.
+
+| The decision you must make | The statistics you need |
+|---|---|
+| "Is this value an outlier or a real extreme?" | Distributions, standard deviation |
+| "Should I fill this gap with the mean or the median?" | Central tendency, skewness |
+| "Do these two columns actually relate?" | Correlation |
+| "Did my fix improve the data or damage it?" | Distributions, before/after comparison |
+
 > *"EDA is not about drawing diagrams or finding some reasons to impute missing values and outliers. It's much more comprehensive than that."*
 
-### Why EDA consumes 60–70% of a project's time
-The cost of EDA scales with **dimensionality (number of columns)**, not just rows. Per-column work multiplies: plots, missing-value logic, outlier logic, transformation decisions. Scaling is the only "one-shot" operation; everything else is per-variable.
-
-```
-    1 column   →  1× (plot + missing + outlier + transform)
-
-   50 columns  →  50× everything
-                  + 49 bivariate plots against the target   ← this is where the time goes
-```
-
-> **On people who claim statistics is obsolete now that transformers exist:** *"use both your ears — enter from here, exit from here. That's absolute rubbish."*
-
-> *"If you don't know stats, you don't know data science. Full stop."*
-
----
-
-## 4. The Five Pillars of Inferential Statistics
-
-The required sequence, in order — each one feeds the next.
+### The five topics, in the order they build on each other
 
 ```
                     INFERENTIAL STATISTICS
                             │
-                            ▼
-              ┌───────────────────────────┐
-              │  1. PROBABILITY           │  basic — not axiomatic
+              ┌─────────────▼─────────────┐
+              │  1. PROBABILITY           │  the basics — how likely is something
               └─────────────┬─────────────┘
-                            ▼
-              ┌───────────────────────────┐
-              │  2. PROBABILITY           │  binomial (discrete)
-              │     DISTRIBUTIONS         │  normal + standard normal
-              └─────────────┬─────────────┘     (continuous)
-                            ▼
-              ┌───────────────────────────┐
-              │  3. SAMPLING              │  ways of drawing samples
+              ┌─────────────▼─────────────┐
+              │  2. PROBABILITY           │  binomial (for yes/no outcomes)
+              │     DISTRIBUTIONS         │  normal (for continuous values)
               └─────────────┬─────────────┘
-                            ▼
-              ┌───────────────────────────┐
-              │  4. ESTIMATION            │  point · interval · MLE
+              ┌─────────────▼─────────────┐
+              │  3. SAMPLING              │  how to pick a subset fairly
               └─────────────┬─────────────┘
-                            ▼
-              ┌───────────────────────────┐
-              │  5. HYPOTHESIS TESTING    │  ← regression & time series
-              └───────────────────────────┘        are built on this
+              ┌─────────────▼─────────────┐
+              │  4. ESTIMATION            │  guessing a population value
+              └─────────────┬─────────────┘      from a sample (incl. MLE)
+              ┌─────────────▼─────────────┐
+              │  5. HYPOTHESIS TESTING    │  proving a claim is real,
+              └───────────────────────────┘      not just luck
 ```
 
-### What breaks downstream without each one
+### What each one is used for later
 
-| Stats topic | What it is consumed by |
-|---|---|
-| **Binomial distribution + odds** | **Logistic regression** — logistic *is* a binomial-family model; odds and probability are *"twin brothers"* |
-| **Normal + standard normal** | All of EDA — outlier rules, scaling interpretation, skewness judgement |
-| **Estimation, especially MLE** | Logistic regression's fitting algorithm **is** maximum likelihood estimation |
-| **Hypothesis testing** | **The most important parts of regression and time series** — *"it is all built on hypothesis testing"* |
+| Topic | What it unlocks | Why |
+|---|---|---|
+| **Binomial distribution** + **odds** | **Logistic regression** | Logistic regression predicts yes/no outcomes, which is exactly what the binomial distribution describes. "Odds" and "probability" are two ways of saying the same thing |
+| **Normal + standard normal** | **All of EDA** | Outlier rules, scaling, skewness judgement all assume you know this shape |
+| **Estimation, especially MLE** (Maximum Likelihood Estimation — the method of picking the parameter values that make your observed data most likely) | **Logistic regression's engine** | It is literally how logistic regression is fitted |
+| **Hypothesis testing** | **Regression and time series** | *"The most important parts of regression and time series are all built on hypothesis testing"* |
 
----
+### How to study it (this was asked directly in class)
+**Not** the college way — memorising a definition and a formula. *"No one cares, everyone can Google it."* Instead, for every concept ask two questions:
 
-## 5. How to Re-Learn Statistics at This Level
-
-### Q&A — Vinit: *"Which topics should I concentrate on, and how?"*
-
-**Not the college way** (definitions plus formulas — *"no one cares, everyone can Google it"*). For **every** concept, ask two questions instead:
-
-1. **Where does this fit in my ML journey?** (which model or step consumes it)
-2. **How is it connected to the neighbouring concepts — and how is it *dis*connected?**
-
-> *"A subject has been built over 200 years with certain connections. We can unwrap them as we wish, but there are connectivities we can't avoid — if we do that, that's disrespecting the subject."*
+1. **Where does this fit in my ML journey?** (which model or step actually uses it)
+2. **How is it connected to the concepts around it — and how is it *not*?**
 
 > *"There are 3 topics you should concentrate on: one is statistics, two is statistics, three is statistics."*
 
 ---
 
-## 6. Descriptive Statistics — Reading a `.describe()` Output
+## 3. Descriptive Statistics — Reading `df.describe()`
 
-The measures that come out of `df.describe()`, and what each one is for.
+**Descriptive statistics** = numbers that summarise a column. In Python, `df.describe()` gives you most of them in one shot. This is always your **first look** at data.
 
-| Measure | Family | What it tells you |
+### What each number tells you
+
+| Measure | What it is | What it's for |
 |---|---|---|
-| **Mean** | Central tendency | The average — **but pulled by outliers** |
-| **Median** | Central tendency | The middle value — **resistant to outliers** |
-| **Mode** | Central tendency | The most frequent value |
-| **Min / Max** | Range | The extremes — first place to spot an absurd value |
-| **Standard deviation** | Dispersion | Typical distance from the mean |
-| **Variance** | Dispersion | SD squared |
-| **Quartiles (Q1, Q2, Q3)** | Position | The 25th / 50th / 75th percentiles |
-| **Percentiles** | Position | Used directly in outlier capping (§20) |
-| **Skewness** | Shape | Symmetry — see §9 |
-| **Kurtosis** | Shape | Peakedness — see §10 |
+| **Mean** | The average | The centre — **but it gets dragged by outliers** |
+| **Median** | The middle value when sorted | The centre — **ignores outliers**, so it's safer |
+| **Mode** | The most frequently occurring value | The centre for categories |
+| **Min / Max** | Smallest and largest values | **Fastest way to spot an absurd value** |
+| **Standard deviation (SD)** | Typical distance of a value from the mean | How spread out the column is |
+| **Variance** | SD squared | Same idea as SD, different units |
+| **Quartiles Q1, Q2, Q3** | The values at 25%, 50%, 75% of the sorted data | Used to build box plots and outlier fences |
+| **Percentile** | The value below which X% of data falls | The 99th percentile is used for capping (§16) |
+| **Skewness** | How lopsided the shape is | See §5 |
+| **Kurtosis** | How peaked the shape is | See §6 — low priority |
 
-### ⭐ The mean/median comparison is a free normality test
+### ⭐ A free normality check hiding in `describe()`
+You don't need a plot to get a first read on shape. Just compare two numbers:
+
 ```
-   mean ≈ median ≈ mode   →  symmetric / near-normal
-   mean >  median          →  right-skewed (positive)  — a few large values pulling the mean up
-   mean <  median          →  left-skewed  (negative)
+   mean ≈ median   →  the column is SYMMETRIC (roughly normal)      ✓ healthy
+   mean >  median   →  RIGHT-skewed — a few big values pulling the mean up
+   mean <  median   →  LEFT-skewed  — a few small values pulling it down
 ```
-Theoretically the three are equal in a normal distribution; in practice *"within 5% of each other and we're pretty happy."*
+
+**Why this works:** the median doesn't care about extreme values (it's just the middle one), but the mean does. So **the gap between them is a measure of how much the extremes are distorting your column.**
+
+In a truly normal distribution mean = median = mode exactly. In real data, *"within 5% of each other and we're pretty happy."*
 
 ---
 
-## 7. The Excel Demo — What ONE Outlier Does to Everything
+## 4. The Core Demonstration — What ONE Bad Value Does
 
-A sheet of **20 rows and 2 columns**: `Age` and `Salary` (₹ lakhs, CTC). Every statistic Python would give you, computed by hand.
+This was the anchor example of the whole session. A tiny sheet: **20 rows, 2 columns** — `Age` and `Salary` (in ₹ lakhs).
 
-### The planted anomaly
+### The planted problem
 
 ```
    ┌──────┬──────┬────────────┐
@@ -171,114 +172,107 @@ A sheet of **20 rows and 2 columns**: `Age` and `Salary` (₹ lakhs, CTC). Every
    │ ...  │  28  │     14     │
    │ ...  │  32  │     19     │
    │ ...  │  35  │     20     │
-   │  18  │  30  │  ██ 75 ██  │  ← nobody near age 30 earns anywhere close
-   └──────┴──────┴────────────┘
+   │  18  │  30  │  ██ 75 ██  │  ← a 30-year-old earning ₹75 L,
+   └──────┴──────┴────────────┘     when peers earn ₹14–20 L
 
-   That is 1 row out of 20 = 5% of the data.
+   That is 1 row out of 20  =  5% of the data.
 ```
 
-### Before and after changing 75 → 25
+### What happened when 75 was changed to a sensible 25
 
-| Statistic | With the outlier (75) | After fixing it to 25 | Effect |
+| Statistic | With the outlier (75) | After fixing to 25 | What changed |
 |---|---|---|---|
-| **Correlation (salary ~ age)** | **≈ 0.46** — *"no real relationship"* | **≈ 0.83** — strong positive | **+37 points**, nearly doubled |
-| **Skewness** | **+4.11** — severely right-skewed | **≈ 1.1** | **−75%** |
+| **Correlation** (salary vs age) | **≈ 0.46** → reads as *"barely related"* | **≈ 0.83** → *"strongly related"* | **+37 points** — nearly doubled |
+| **Skewness** | **+4.11** → severely lopsided | **≈ 1.1** → manageable | dropped ~75% |
 | **Standard deviation** | **≈ 13** | **≈ 3** | collapsed |
-| **Mean / Median** | 16–17 / 13 | **14 / 13.5** → now ≈ equal | became **symmetric / near-normal** |
-| **Kurtosis** | high | normalised | (not important — see §10) |
+| **Mean / Median** | 16–17 / 13 → far apart | **14 / 13.5** → nearly equal | became **symmetric** |
 
 ```
-        BEFORE                              AFTER
-   corr = 0.46  "no relationship"      corr = 0.83  "strong positive"
-   skew = 4.11  "badly skewed"         skew = 1.1   "under control"
-   sd   = 13                           sd   = 3
-   mean ≠ median                       mean ≈ median  → normal
-          ▲
-          └── ONE row out of 20 caused ALL of this
+        BEFORE (with 75)                      AFTER (75 → 25)
+   correlation = 0.46  "no relationship"   correlation = 0.83  "strong"
+   skewness    = 4.11  "badly lopsided"    skewness    = 1.1   "fine"
+   SD          = 13    "huge spread"       SD          = 3     "tight"
+   mean ≠ median                           mean ≈ median → normal
+              ▲
+              └── ONE row out of 20 caused ALL FOUR of these
 ```
 
-> *"One number geopoliticises the entire thing."*
+### The two lessons
 
-Because that single value distorts correlation and dispersion here, it will distort a **regression** built on the same data in exactly the same way.
+**Lesson 1 — outliers don't distort one number, they distort everything.** Correlation, spread, and shape all moved together. And since a **regression model** (§12) is built from exactly these quantities, the model would be distorted by the same amount.
 
-### Q&A — Yogan Naik: *"Aren't we just playing with the data to get a better number?"*
+**Lesson 2 — and this is the important one.** A student asked: *"aren't we just playing with the data to get a better number?"* The answer:
+
 > *"I am **NOT** doing it because I want correlation and skewness to be better. I'm doing it because 75 is an extreme outlier that makes no sense in this cohort. I get a better result as a by-product — that is not the reason."*
 
-This distinction is the whole subject of §11.
+**The justification must come from the data, not from the result you want.** §8 makes this into a rule you can apply.
 
 ---
 
-## 8. Distributions — Symmetric vs Asymmetric
+## 5. Distributions and Skewness
+
+A **distribution** is just the shape you get when you plot how often each value occurs.
 
 ```
                         ALL DISTRIBUTIONS
                                 │
               ┌─────────────────┴─────────────────┐
-              │                                   │
          SYMMETRIC                        ASYMMETRIC (= SKEWED)
               │                                   │
        Normal / bell curve              ┌─────────┴─────────┐
-       mean = median = mode             │                   │
-       skewness ≈ 0              LEFT / NEGATIVE      RIGHT / POSITIVE
-                                 long left tail       long right tail
-                                 skew < 0             skew > 0
+       mean = median = mode      LEFT / NEGATIVE      RIGHT / POSITIVE
+       skewness ≈ 0              long left tail       long right tail
+                                 skewness < 0         skewness > 0
 ```
 
 ### The normal distribution
-- **Bell-shaped and symmetric** — cut it at the middle and you get **50% on the left, 50% on the right**.
-- **mean ≈ median ≈ mode.**
-- Different normals can look very different (different height, different spread) and **still all be normal**. What makes a distribution normal is the **symmetry and the centred mean/median/mode**, not the steepness of the curve.
+The reference shape everything else is compared against.
+
+- **Bell-shaped and symmetric** — split it down the middle and you get **50% each side**.
+- **mean = median = mode**, all at the centre.
+- **Important:** normal distributions can look very different from each other — taller, flatter, wider. What makes a distribution normal is the **symmetry**, not the steepness.
 
 ```
    NORMAL (symmetric)                  RIGHT-SKEWED (positive)
 
   Freq                                Freq
    ▲                                   ▲
-   │        ███                         │  ███
-   │     ██████████                     │  ██████
-   │  ████████████████                  │  █████████
-   │  ████████████████                  │  ██████████████
-   └──────────┬──────────►              └──────────────────────────►
-              │                            ▲              ▲
-         50%  │  50%                       │              │
-   mean = median = mode                  bulk of      long right tail
-                                         values       (the ₹75 L salary)
+   │        ███                        │  ███
+   │     ██████████                    │  ██████
+   │  ████████████████                 │  █████████
+   │  ████████████████                 │  ██████████████
+   └──────────┬──────────►             └──────────────────────────►
+              │                           ▲              ▲
+         50%  │  50%                      │              │
+   mean = median = mode                 most of      LONG RIGHT TAIL
+                                        the data     (the ₹75 L salary)
 
-                                       mode < median < mean
-                                       e.g. salary column: skew = +4.11
+                                     mode < median < mean
+                                     salary column: skewness = +4.11
 ```
 
----
+### How to read a skewness number
 
-## 9. Skewness
-
-| Skewness value | Reading |
-|---|---|
-| **≈ 0** | Symmetric / normal — *"data is under control, range is lower, values well distributed"* |
-| **> +1** | Positively skewed — a few large values stretching the right tail (the 75) |
-| **< −1** | Negatively skewed — a few very small values stretching the left tail |
-
-### Industry reality check
-> **~80% of real field variables are skewed.** Ad spend, marketing spend, sales — *"either I've done less or more."* Expect **|skew| > 1**. Perfectly normal real data is rare.
-
-### Q&A — Gunjan: *"So lower skewness is better?"*
-→ **Confirmed. Lower |skewness| = healthier data = less work for you.**
-
----
-
-## 10. Kurtosis
-
-**Kurtosis = the peakedness of the distribution.**
-
-| Type | Sign | Shape |
+| Skewness | What it means | What to do |
 |---|---|---|
-| **Leptokurtic** | Positive | Very sharp peak, narrow spread — data crammed centrally, falls off steeply |
-| **Mesokurtic** | ≈ 0 | The normal distribution — no excess peakedness, uniform slope |
-| **Platykurtic** | Negative | Flat, plateau-like |
+| **≈ 0** | Symmetric — *"data is under control, values well distributed"* | Nothing. You're lucky |
+| **> +1** | **Right-skewed** — a few unusually large values | Investigate those large values |
+| **< −1** | **Left-skewed** — a few unusually small values | Investigate those small values |
+
+### ⚠️ Reality check before you panic
+**About 80% of real-world columns are skewed.** Ad spend, marketing spend, sales — *"either I've done less or more."* Expect `|skewness| > 1` as normal life. **Perfectly normal real data is rare.**
+
+Asked directly whether lower skewness is better: **yes — lower |skewness| means healthier data and less work for you.**
+
+---
+
+## 6. Kurtosis (know the words, then move on)
+
+**Kurtosis = how peaked the distribution is.** Three names to recognise:
 
 ```
    LEPTOKURTIC             MESOKURTIC (normal)        PLATYKURTIC
-   sharp peak              the reference shape        flat / plateau
+   sharp, narrow peak      the reference shape        flat, no real peak
 
   Freq                     Freq                      Freq
    ▲                        ▲                          ▲
@@ -289,232 +283,221 @@ This distinction is the whole subject of §11.
    └───────────────►        └──────────────────►       └──────────────────►
 
    kurtosis > 0             kurtosis ≈ 0               kurtosis < 0
-   narrow spread,           uniform slope              wide spread,
-   falls off steeply                                   no real peak
 ```
 
-### Q&A — Nirav: *"How important is kurtosis for us?"*
-→ **Low priority.** Kurtosis belongs to **SQC (Statistical Quality Control)** and **Design of Experiments**, not to your ML workflow.
-
-> *"In your machine learning you will not need that depth."*
-
-Know the three words; move on.
+> **Priority: low.** Kurtosis belongs to **Statistical Quality Control** and **Design of Experiments**, not to your ML workflow. *"In your machine learning you will not need that depth."* Recognise the three words in an interview; don't spend study time here.
 
 ---
 
-## 11. Manipulation vs Tampering
+## 7. Correlation
 
-### Q&A — Swagat Kumar Pattnaik: *"How do we know we're tampering rather than manipulating?"*
+**Correlation = the degree to which two variables move together.** Not "are they related" — *how strongly*.
 
-> *"There is a very fine line between manipulating and tampering. In your initial few projects, you will actually tread over the line — in order to get high accuracy, because that's what plays in our mind."*
+### The mental model
+Imagine measuring the height and weight of 100 people:
 
-### The two golden rules — check the distribution BEFORE and AFTER every single operation
-
-```
-      ANY EDA operation  (impute / cap / transform / encode)
-                        │
-             ┌──────────┴──────────┐
-          BEFORE                 AFTER
-       record the dist.      record the dist.
-             └──────────┬──────────┘
-                        ▼
-              compare, then judge:
-   ┌───────────────────────────────────────────────────┐
-   │  RULE 1: Don't change the distribution by much    │  (~20–30% shift max)
-   │  RULE 2: Any change must be TOWARD normality      │
-   └───────────────────────────────────────────────────┘
-
-   Changed a LOT              →  TAMPERING
-   Moved AWAY from normal     →  your LOGIC / analysis is wrong
-   Small move toward normal   →  legitimate manipulation ✓
-```
-
-### The decisive test
-The **reason** must be logic about the data — never the desirability of the output.
-
-> *"If you have the right logic to do it, and in the process you get a better result — fine. If you manipulate data to serve your own nice/short work — that is tampering."*
-
-### ⭐ The temptation to force normality
-Everyone wants normal variables, because then outlier detection becomes trivial (see §19). So people log-transform everything.
-
-> *"That is something you should be very, very wary of."*
-> *"It's a temptation of having biryani every day. Not good for your health."*
-
-**If a variable is already normal — great. If it isn't, don't over-engineer it into normality.**
-
----
-
-## 12. What Happens if You Cross the Line — The Production Death Spiral
-
-```
-   Biased / over-engineered EDA
-            │
-            ▼
-   Great in-sample accuracy (95%+)
-            │
-            ▼
-   30-slide PPT to a non-statistical business stakeholder → they love the numbers
-            │
-            ▼
-   Deployed to production  (CI/CD, Airflow monitoring, Azure / AWS / GCP / Databricks costs)
-            │
-            ▼
-   NEW DATA ARRIVES  →  MODEL FAILS
-            │
-            ▼
-   "Give me a month" → rebuild → fails again after 2 runs
-            │
-            ▼
-   Client: "I've spent ₹15–20 lakhs, no ROI. We are scrapping the model."
-            │
-            ▼
-   Model dead in 3–6 months
-```
-
-> *"A very good result doesn't necessarily mean a right result. In data science, a **correct** result is more important than a **good** result."*
-
-> *"Give me 75% accuracy sustainable over 6 months in production — I'm happy. Give me 95% sustainable for 7 days — I don't care, I will not take it, I will not make it billable."*
-
----
-
-## 13. Correlation
-
-**Definition:** not just "a relationship" — **the degree of association between two variables.**
-
-### The classic example — height vs weight of 100 people
 > *"I am not interested in your height. Neither am I interested in your weight. You are fat, thin, tall, short — I simply don't care. You are just one data point, one entry of the hypothesis I'm trying to prove."*
 
-The hypothesis being tested is **only**: do height and weight move together?
+**The individual rows are not the point.** The only question is: *when height goes up, does weight tend to go up too?*
 
-*(Aside: the older textbook example was height vs IQ. Short people protested, and the next edition changed it. He agreed it was a bad example.)*
-
-### The scale
+### The scale — always between −1 and +1
 
 ```
    −1 ─────────── −0.7 ───────── 0 ───────── +0.7 ─────────── +1
  perfect          strong      NO / weak      strong         perfect
- inverse          inverse    correlation    positive        positive
+ opposite         opposite    relationship   together       together
                             (−0.3 … +0.3)
 ```
 
-| Range | Reading |
-|---|---|
-| **0.8 to 1.0** | Very strong positive |
-| **−0.8 to −1.0** | Very strong inverse |
-| **≈ −0.3 to +0.3** | **Weak / no correlation** |
+| Value | Reading | Example |
+|---|---|---|
+| **+0.8 to +1.0** | Very strong, same direction | Height ↑ → weight ↑ (taller people carry more mass) |
+| **−0.8 to −1.0** | Very strong, opposite directions | Pollution ↑ → air quality ↓ |
+| **−0.3 to +0.3** | **Weak or none** | Two unrelated columns |
 
-### Examples given
-| Direction | Example |
-|---|---|
-| **Positive** | Height ↑ → weight ↑ (taller people carry more bone and body mass) |
-| **Negative** | Delhi **air quality vs pollution** — pollution ↑ → air quality ↓ → strong negative expected |
+*(Underneath, correlation is calculated from **covariance** — a related measure of joint variation. Worth looking up separately; not needed to use correlation.)*
 
-### Q&A — Sridutt: *"How do we know we've got wrong data?"*
-The correlation number must **agree with what the variables mean**.
+### ⭐ The interpretation duty
+A correlation number is not automatically true. **It must agree with what the columns actually mean.**
 
 > *"If the value says something and the variables mean something else — there is something wrong."*
 
-That is a **biased / treacherous data** signal. (He returns to this question more fully in §22.)
+If pollution and air quality come out *positively* correlated, you don't have a discovery — you have **bad or biased data**, and you go and check.
 
-### Underneath correlation
-Correlation is derived from **covariance** — flagged as worth looking up, deliberately skipped to avoid turning the masterclass into a statistics class.
+**And the practical version of this rule:** if a correlation is **very strong but unlikely, double check it.**
 
 ---
 
-## 14. Spurious Correlation — The Yale Ships Story
+## 8. Spurious Correlation, and Why *You* Are the Risk
 
-**"Spurious" = false.** Spurious correlation happens when **you** are subjectively or subconsciously biased *before* you build the model.
+**Spurious = false.** A **spurious correlation** is a relationship that looks real in your output but isn't — usually because of how *you* set the analysis up.
 
-The story — a PhD thesis defence at Yale, roughly 10–12 years ago:
+### The story that makes it stick
+A PhD defence at Yale:
 
 ```
    THE CANDIDATE'S THESIS
-   Target:   did a ship go down in the Atlantic?  (yes/no → a logistic regression problem)
-   Features: weather variables — wind pressure, air pressure, sea conditions
-   Method:   pulled 40–50 years of data for the days ships WENT DOWN
-   Finding:  on those days the weather was bad
-             →  "strong relationship: ships sink in bad weather"
-                        │
-                        ▼
-   THE CHALLENGER  (a panel member): "Give me 15 days, I'll find a contrary result."
-   Method:   looked ONLY at the days when NO ship went down — every ship sailed fine
-   Finding:  on 46% of those days the weather was WORSE
-             by the candidate's own parameters
-                        │
-                        ▼
-   CONCLUSION: the original finding is NOT CONCLUSIVE.
-               The first analysis was wrong — not because the maths was wrong,
-               but because the SAMPLE was biased by design.
+   Question:  did a ship sink in the Atlantic?  (a yes/no prediction problem)
+   Data used: 40–50 years of weather records — but ONLY for the days ships SANK
+   Finding:   on those days the weather was bad
+              →  "ships sink in bad weather. Strong relationship."
+                              │
+                              ▼
+   A PANEL MEMBER: "Give me 15 days, I'll find the opposite."
+   Data used: ONLY the days when NO ship sank — every ship sailed fine
+   Finding:   on 46% of those days the weather was WORSE,
+              measured by the candidate's own parameters
+                              │
+                              ▼
+   VERDICT: the original conclusion is NOT VALID.
+            The maths was fine. The SAMPLE was biased by design —
+            it only ever looked at ONE side of the outcome.
 ```
 
-### Q&A — Deepak Bobade: *"Which of the two was correct?"*
-→ **Neither is a "correct" answer.** The first one is simply **invalid**, because it only ever looked at one side of the outcome.
+Asked which of the two was correct: **neither is the "right answer."** The first is simply **invalid**.
 
-### Practical rule
-If a correlation looks **very strong but unlikely → double check it.**
+### The lesson: bias enters *before* you write any code
 
----
-
-## 15. You Are the Biggest Source of Error
-
-> *"That is the biggest problem we data scientists suffer from, because we are human beings, we are not machines. We will all have preconceived notions and biases."*
+> *"Spurious correlation happens when you yourself are subconsciously biased even before you build a model. And that is the biggest problem we data scientists suffer from, because we are human beings, we are not machines."*
 
 > *"Even if you know your sales are driven by advertisement and marketing — you cannot bring that prior knowledge in when you're building the model. Because then, subconsciously, you will make the EDA drive towards your beliefs."*
 
-### Q&A — Meet: *"Can we quantify our own bias?"*
-> *"No. Not even agentic AI has been able to do that. It's not a stupid question — the question just doesn't have an answer."*
+### Can you measure your own bias?
+Asked in class. The answer was **no** — *"not even agentic AI has been able to do that. It's not a stupid question — the question just doesn't have an answer."*
 
-### The consequence
+This has a real consequence:
+
 ```
-   Human judgement can never be bias-free or error-free
-                        │
-                        ▼
-   100% accuracy is NOT achievable
-                        │
-                        ▼
-   Everything unquantifiable gets dumped into the ERROR TERM
-                        │
-                        ▼
+   Human judgement can never be fully bias-free
+                    │
+                    ▼
+   100% accuracy is NOT achievable — ever
+                    │
+                    ▼
+   Everything we cannot explain goes into the ERROR TERM
+
               y = m₁x₁ + m₂x₂ + … + c + e
                                           ▲
-                                          └── everything we cannot explain
+                                          └── the "everything else" bucket
 ```
-
-> *"And that is the beauty of it. If we could quantify it, it would become very dull — the thrill goes off."*
 
 ---
 
-## 16. Bivariate Outliers
+## 9. ⭐ The Golden Rule: Manipulation vs Tampering
 
-**"Bivariate outlier" is the instructor's own coined term.** This is the centrepiece of the session.
+This is the single most important rule in the session. Everything you do in EDA changes the data. **How do you know whether you improved it or corrupted it?**
+
+> *"There is a very fine line between manipulating and tampering. In your initial few projects, you will actually tread over the line — in order to get high accuracy, because that's what plays in our mind."*
+
+### The procedure — check the distribution BEFORE and AFTER every single operation
+
+```
+      ANY EDA operation  (fill a gap / cap an outlier / transform / encode)
+                              │
+                 ┌────────────┴────────────┐
+              BEFORE                     AFTER
+        record the distribution    record the distribution
+                 └────────────┬────────────┘
+                              ▼
+                    compare, then judge:
+   ┌────────────────────────────────────────────────────────┐
+   │  RULE 1:  Don't change the distribution by MUCH        │
+   │           (rough guide: ≤ ~20–30% shift)               │
+   │                                                        │
+   │  RULE 2:  Any change must move TOWARD normality        │
+   └────────────────────────────────────────────────────────┘
+
+   Changed a LOT              →  you are TAMPERING
+   Moved AWAY from normal     →  your LOGIC is wrong — rethink it
+   Small move toward normal   →  legitimate manipulation ✓
+```
+
+### The test that decides it
+The **reason** must be a fact about the data — never the result you were hoping for.
+
+> *"If you have the right logic to do it, and in the process you get a better result — fine. If you manipulate data to serve your own nice/short work — that is tampering."*
+
+### ⚠️ The trap: forcing normality
+Normal columns are convenient, because then outlier detection is a one-line formula (§15). So people log-transform everything to force normality.
+
+> *"That is something you should be very, very wary of."*
+> *"It's a temptation of having biryani every day. Not good for your health."*
+
+**If a column is already normal, great. If it isn't, don't torture it into being normal.**
+
+### Why the stakes are real — what a tampered model does in production
+
+```
+   Over-engineered EDA
+        │
+        ▼
+   Excellent accuracy on your own data (95%+)
+        │
+        ▼
+   Business stakeholders love the slides
+        │
+        ▼
+   Deployed to production (monitoring, cloud costs, pipelines)
+        │
+        ▼
+   NEW DATA ARRIVES  →  THE MODEL FAILS
+        │
+        ▼
+   Rebuild → fails again after 2 runs
+        │
+        ▼
+   Client: "₹15–20 lakhs spent, no return. We're scrapping it."
+        │
+        ▼
+   Model dead within 3–6 months
+```
+
+> *"A very good result doesn't necessarily mean a right result. In data science, a **correct** result is more important than a **good** result."*
+
+> *"Give me 75% accuracy sustainable over 6 months in production — I'm happy. Give me 95% sustainable for 7 days — I will not take it, I will not make it billable."*
+
+---
+
+## 10. ⭐⭐ Univariate vs Bivariate Outliers
+
+**This is the highest-value idea in the session, and it's one most courses skip.**
+
+### Two kinds of outlier
+
+| Type | Definition | How you find it |
+|---|---|---|
+| **Univariate outlier** | A value that is extreme **in its own column** | Box plot, IQR, distance from mean, binning |
+| **Bivariate outlier** | A value that is **perfectly normal in its own column**, but **impossible in combination** with another column | **Only a scatterplot** |
+
+*(The instructor coined the term "bivariate outlier" himself — you may not find it in textbooks under that name, but the phenomenon is real and is what causes heteroscedasticity, §10.4.)*
 
 ### The interview question he asks candidates
-> *"If I have already drawn a **heatmap** during EDA, do I still need a **scatterplot**? Does the scatterplot give me anything extra?"*
+> *"If I have already drawn a **heatmap**, do I still need a **scatterplot**? Does the scatterplot give me anything extra?"*
 
-**Answer: YES.** The heatmap gives you the correlation **number**; only the scatterplot shows you **which individual points** are misbehaving jointly.
+**Answer: yes.** A **heatmap** shows you correlation *numbers* for every pair of columns. It cannot show you *which individual rows* are misbehaving. Only a scatterplot can.
 
 ### The demonstration
-He restored the 75 and appended two legitimate rows:
+Two extra rows were added to the earlier sheet:
 
-| Age | Salary (₹L) | Univariate verdict |
-|---|---|---|
-| 50 | 50 | Salary looks extreme… but **plausible at age 50** |
-| 50 | 62 | Salary looks extreme… but **plausible at age 50** |
-| **30** | **75** | Salary extreme **and impossible at 30** ← the real problem |
+| Age | Salary (₹L) | Looking at salary alone | Looking at both together |
+|---|---|---|---|
+| 50 | 50 | Extreme! | **Fine** — ₹50 L at age 50 is plausible |
+| 50 | 62 | Extreme! | **Fine** — ₹62 L at age 50 is plausible |
+| **30** | **75** | Extreme! | **THE REAL PROBLEM** — ₹75 L at age 30 is not plausible |
 
-| View | What you see |
+| The view you take | What you conclude |
 |---|---|
-| **`Salary` alone** | The class flagged **three** outliers: 50, 62, 75 (mean ≈ 18.9, so all are 2–3× away) |
-| **`Age` alone** | **Zero** outliers. Every age is plausible. The 30-year-old will *never* be an outlier on age |
-| **(Age, Salary) jointly** | Only **one** row is anomalous — age 30 with ₹75 L. The two age-50 rows are fine |
+| **`Salary` column alone** | **Three** outliers: 50, 62, 75 (mean is ~18.9, so all are 2–3× away) |
+| **`Age` column alone** | **Zero** outliers. Every age is plausible. Age 30 will *never* look extreme |
+| **Both columns together** | **One** genuine problem: age 30 with ₹75 L |
 
 ```
    Salary
    (₹L) ▲
         │
      75 │        ★  ◄── BIVARIATE OUTLIER (30, 75)
-        │            invisible to BOTH box plots
-        │            an odd COMBINATION, not an odd VALUE
+        │            Invisible to BOTH box plots.
+        │            An odd COMBINATION, not an odd VALUE.
      62 │                                    ○  (50, 62)  ← fine
         │
      50 │                                    ○  (50, 50)  ← fine
@@ -525,95 +508,106 @@ He restored the 75 and appended two legitimate rows:
         └──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──┴──► Age
            25    30    35    40    45    50
 
-   ● = the normal cohort      ○ = high salary, high age → VALID
-   ★ = high salary, LOW age → the only genuine anomaly
+   ●  = the normal cohort
+   ○  = high salary WITH high age  →  follows the trend, VALID
+   ★  = high salary with LOW age   →  contradicts the trend, ANOMALY
 ```
 
-### The rules that fall out of it
+### The four rules that follow
 
-| Rule | Detail |
+| # | Rule |
 |---|---|
-| **Bivariate outliers matter MORE than univariate ones** | Univariate methods (box plot, IQR, distance-from-mean, binning) **structurally cannot see them** |
-| **Always plot each X against the target Y** | Anything sitting in the **top-left or bottom-right** — the "wrong" corners — behaves differently from the rest |
-| **High-X with high-Y is fine** | *"Then it is okay — it's a problem when there's a problem in between them"*, i.e. when the combination contradicts the trend (confirmed to Deepan) |
-| **Cost of keeping them** | They drag model efficiency down, and they are **the main source of heteroscedasticity** in linear regression |
+| **1** | **Bivariate outliers matter more than univariate ones** — because every univariate method (box plot, IQR, distance-from-mean, binning) is **structurally blind** to them |
+| **2** | **Plot every predictor against the target.** Anything in the **top-left or bottom-right** — the "wrong" corners — behaves differently from everything else |
+| **3** | **High-X with high-Y is fine.** *"It's a problem when there's a problem in between them"* — i.e. only when the combination **contradicts the overall trend** |
+| **4** | **Cost of ignoring them:** they drag model accuracy down, and they are the **main source of heteroscedasticity** — a condition where prediction errors get systematically bigger (or smaller) across the range, which breaks a core assumption of linear regression |
 
 ---
 
-## 17. The Minimum-Number-of-Plots Rule
+## 11. How Many Plots Do You Actually Have to Draw?
 
-### Setup — Sathish's and Pallavi's exchange
-**50 variables**: 1 is the target `Y`, the other **49 are `X`s**.
+A question posed to the class, worth internalising.
 
-### The linear regression skeleton
+### Setup
+You have **50 columns**. One of them is the target `Y`. The other **49 are predictors `X`**.
+
+### Why regression only cares about one column
+The straight line you learned at school:
+
 $$y = mx + c$$
+
+Add more predictors and an error term, and you have **linear regression**:
 
 $$y = m_1x_1 + m_2x_2 + \dots + m_{49}x_{49} + c + e$$
 
-Add the error term `e` to the school straight line and it becomes linear regression.
-
-| | Focus |
+| | What it focuses on |
 |---|---|
-| **Correlation** | The association between **any two** variables |
-| **Regression** | **Exactly one** variable — **Y** |
+| **Correlation** | The relationship between **any two** columns |
+| **Regression** | **One** column only — the target **Y** |
 
 > *"I don't care about the other 49. Why do I have them? Because I think they will potentially explain my target."*
 
-### The question: what is the MINIMUM number of bivariate plots you must draw?
-**Pallavi's answer — 49. Correct.**
+### The answer
 
 ```
-   50 variables  =  1 target Y  +  49 predictors X
+   50 columns  =  1 target Y  +  49 predictors X
 
-   MINIMUM bivariate plots  =  49        (every X against Y, one by one)
+   MINIMUM number of bivariate plots  =  49
+                                          (every X plotted against Y, one at a time)
 
-   ── skip any of them and you will miss bivariate outliers ──
+   ── skip any of them and you will miss a bivariate outlier ──
 
-   MAXIMUM?  Unbounded (X-vs-X pairs, pair plots) — "it depends"
+   MAXIMUM?  Unbounded — you can also plot X against X, use pair plots, etc.
 ```
+
+**General rule: minimum plots = (number of columns − 1).**
 
 > *"It's not about whether you give the correct answer, it's about how you think through it."*
 
 ---
 
-## 18. Order of Operations — Outliers First, or Missing Values First?
+## 12. Which Comes First — Outliers or Missing Values?
 
-He called this **"a million-dollar question in the industry."**
-
-### Two answers from the room, both accepted
-| Who | Answer |
-|---|---|
-| **Meet** | Outliers first — so the outliers don't contaminate however you fill the missing data |
-| **Deepak Katara** | Analyse first — the percentages and deviations should dictate the approach |
+Called *"a million-dollar question in the industry."* Two answers came from the class and **both were accepted** — because the right answer depends on *how* you plan to fill the gaps.
 
 ### The decision rule
 
 ```
-              Are you imputing missing values with a
-              STATISTICAL MEASURE?  (mean especially, or median)
-                             │
-              ┌──────────────┴──────────────┐
-             YES                            NO
-              │                   (binning / categorising /
-              ▼                    interpolation / MICE / advanced)
-   ── OUTLIERS FIRST, ALWAYS ──                │
-   otherwise your mean is                      ▼
-   already wrong before you use it     Order doesn't matter →
-                                       do whichever problem is BIGGER first
-                                       (higher % / graver issue)
+        Are you filling missing values with a STATISTICAL MEASURE?
+                    (the mean especially, or the median)
+                              │
+              ┌───────────────┴───────────────┐
+             YES                              NO
+              │                    (binning / categorising /
+              ▼                     interpolation / MICE)
+   ┌──────────────────────────┐               │
+   │  OUTLIERS FIRST, ALWAYS  │               ▼
+   └──────────────────────────┘   ┌────────────────────────────┐
+   Because the outlier corrupts    │  Order doesn't matter.     │
+   the mean BEFORE you use it      │  Do the BIGGER problem     │
+   to fill the gaps.               │  first (higher %).         │
+                                   └────────────────────────────┘
 ```
 
-### Why "bigger problem first" when the order is free
+**Why "outliers first" when using the mean:** go back to §4. With the ₹75 L outlier present, the mean was 16–17. Without it, 14. If you fill empty salary cells with 16–17, **you have just injected the outlier's distortion into every row you filled.**
+
+**Why "bigger problem first" when order is free:**
 > *"You want to have control of the data as soon as possible. You don't want to keep control away from you for longer by doing other things first — you need to see the real figures, the right figures, as soon as possible."*
+
+### Terms used above, defined
+| Method | What it does |
+|---|---|
+| **Mean/median imputation** | Fill the gap with the column's average or middle value |
+| **Binning / categorising** | Convert to ranges ("young / middle / old") so a missing value becomes just another category |
+| **Interpolation** | Estimate the gap from neighbouring values (useful for time-ordered data) |
+| **MICE** | Multivariate Imputation by Chained Equations — predict each missing value from the *other* columns, repeatedly. The advanced option |
 
 ---
 
-## 19. The 3-Sigma Rule and Where 1.5 × IQR Comes From
+## 13. Finding Outliers, Method 1 — The 3-Sigma Rule
 
-### Q&A — Jithu: *"Where does the 1.5 in the box-plot formula come from?"*
-→ **Accepted as correct in spirit:** it is tied to the **3-sigma** idea.
+**Sigma (σ) = standard deviation.** The rule says: in a normal distribution, almost everything sits within 3 standard deviations of the mean.
 
-### The rule
 ```
   Freq
    ▲
@@ -628,114 +622,127 @@ He called this **"a million-dollar question in the industry."**
     ◄───────┤                               ├───────►
    OUTLIERS │◄── 99.73% of observations ───►│ OUTLIERS
             │                               │
-            └── 0.27% total, split across both tails ──┘
+            └── only 0.27% total lies outside, split across both tails ──┘
 ```
 
-Worked example: mean = 50, SD = 10 → the "normal" range is **20 to 80**. Anything outside → **potential outlier**.
+### Worked example
+```
+   mean = 50,  SD = 10
+   → normal range = 50 − 30  to  50 + 30  =  20 to 80
+   → anything below 20 or above 80 is a POTENTIAL outlier
+```
 
-> **Precondition, stated explicitly:** this only holds when the distribution is **normal / symmetric**. For a skewed distribution it does **not** hold.
+### ⚠️ The precondition that people forget
+**This only works if the distribution is normal / symmetric.** On a skewed column it does not hold. Since ~80% of real columns are skewed (§5), you often cannot use this directly — which is why the next method exists.
 
-### Box-plot fences
-$$\text{Lower fence} = Q1 - 1.5 \times IQR \qquad \text{Upper fence} = Q3 + 1.5 \times IQR$$
-
-where $IQR = Q3 - Q1$.
-
-**Why 1.5 and not 0.5 or 2.5?** Because it is calibrated to reproduce roughly the same tail cut-off as ±3σ under normality.
-
-> **The actual arithmetic behind the "magic" 1.5** (worth knowing for an exam): for a normal distribution, `Q3 + 1.5·IQR ≈ mean + 2.698σ`, which leaves ≈ **0.7%** outside — deliberately tuned to approximate the 3-sigma / 99.7% cut-off.
-
-### ⚠️ One naming correction to carry
-He called this **"Chebyshev's inequality."** An exam will separate the two:
+### ⚠️ A naming correction worth carrying
+In class this was called **"Chebyshev's inequality."** An exam will separate the two:
 
 | | Applies to | Guarantee within mean ± 3·SD |
 |---|---|---|
-| **Empirical rule (68–95–99.7)** | **Normal** distributions only | **≈ 99.73%** ← the figure he used |
-| **Chebyshev's inequality** | **Any** distribution | **At least 88.9%** (1 − 1/k², k = 3) |
+| **Empirical rule** (68–95–99.7) | **Normal** distributions only | **≈ 99.73%** ← the figure used in class |
+| **Chebyshev's inequality** | **Any** distribution | **At least 88.9%** (1 − 1/k², with k = 3) |
 
-The 99.73% figure plus the "only if normal" caveat he gave together describe the **empirical rule**. His caveat was right even though the name was loose.
-
-### Why this creates the normality temptation
-> *"If I can make it normal, finding outliers is easy — I don't have to draw box plots and do all that drilling. I just use this formula, I'm done. A lot less work."*
-
-**And that is exactly why you must resist it — see §11.**
+The 99.73% figure plus the "only if normal" caveat together describe the **empirical rule**. The caveat given in class was right; the name was loose.
 
 ---
 
-## 20. Outlier Treatment — Capping Off and Winsorization
+## 14. Finding Outliers, Method 2 — Box Plots and the 1.5 × IQR Fence
 
-The class had learned how to **find** outliers (box plot, IQR, distance from mean, binning) but **not how to treat** them.
+**IQR = Interquartile Range = Q3 − Q1** — the range covering the middle 50% of your data.
 
-### The worked example — `Age` in a banking dataset
+$$\text{Lower fence} = Q1 - 1.5 \times IQR \qquad \text{Upper fence} = Q3 + 1.5 \times IQR$$
+
+Anything outside those fences is flagged as an outlier.
+
+### Why 1.5? (asked in class, and the answer was accepted)
+**Because 1.5 is calibrated to reproduce roughly the same cut-off as the 3-sigma rule** — but using quartiles, which don't require the column to be normal.
+
+> **The actual arithmetic, if you want it:** for a normal distribution, `Q3 + 1.5·IQR ≈ mean + 2.698σ`, leaving ≈ 0.7% of data outside. So the "magic" 1.5 was deliberately chosen to approximate the 3-sigma / 99.7% boundary. It is not arbitrary.
+
+### ⚠️ Both of these methods are univariate
+Box plots, IQR, distance-from-mean, binning — **every one of them looks at a single column at a time**, so **none of them can see a bivariate outlier** (§10). You need scatterplots *in addition*.
+
+---
+
+## 15. Treating Outliers — Winsorization / Capping
+
+You've found an outlier. Now what? The worked example: an `Age` column in a banking dataset.
+
 ```
-   min = 18          max = 105
-   mean = 45         99th percentile = 85
+   min = 18            max = 105
+   mean = 45           99th percentile = 85
    n = 100  (later 500)
 ```
 
-### Step 1 — Is it even non-normal? You can tell without plotting anything
-min 18, max 105, mean 45 → the max is far further from the mean than the min is → **right-skewed.**
+### Step 1 — Detect the skew without plotting anything
+min is 27 below the mean; max is 60 above it. **The max is much further out than the min → right-skewed.** No code needed.
 
 > *"A smart data scientist doesn't write 100 lines of code. They write 20 lines, but draw 5 inferences from one output."*
 
-### Step 2 — ⭐ Ask WHO these people are, before any formula
+### Step 2 — ⭐ Ask who these people are, BEFORE any formula
+Is age 105 an error or a fact? **It depends entirely on the population:**
 
-| Population | Is age 105 plausible? |
-|---|---|
-| **India** | **No.** Average life expectancy ≈ **70**; 105 is ≈ 1.5× that. **Absurd** — no Indian bank would entertain a walk-in claiming 105 |
-| **Japan / New Zealand / Scandinavia** | **Yes.** Average life expectancy ≈ **92–94**; 105 is only ~10 above average. He knows someone in the UK who did their own banking and post-office work at **101** |
+| Population | Life expectancy | Verdict on age 105 |
+|---|---|---|
+| **India** | ≈ 70 | **Absurd.** 105 is ~1.5× the average. No Indian bank would entertain a walk-in claiming 105 |
+| **Japan / New Zealand / Scandinavia** | ≈ 92–94 | **Plausible.** Only ~10 above average. (He knows someone in the UK doing their own banking at **101**) |
 
 > *"So I need to know: is this person from Tokyo, Copenhagen, or Mumbai? I need to know how **improbable** this value is."*
 
-**Demographic and domain context decides whether a value is an error or a fact. Do this before any formula.**
+**Domain context decides whether a number is an error. Ask this before reaching for any statistical rule.**
 
-### Step 3 — The treatment
+### Step 3 — Cap it to a sensible boundary
 
 | Term | Meaning |
 |---|---|
-| **Capping off** (older term) | Replace the outlier with the **nearest sensible boundary value** — e.g. the 99th percentile |
-| **Winsorization** | The modern name for the same idea; **widely used in industry** |
+| **Capping off** | The older term: replace the outlier with the nearest **sensible boundary value** |
+| **Winsorization** | The modern name for the same thing. **This is what industry uses** |
 
 ```
-   105  ──cap──────────────►  85   (the 99th percentile)     ✓ CORRECT
-   105  ──impute with mean─►  45   (the central value)       ✗ WRONG
+   105  ──cap to the 99th percentile──►  85     ✓ CORRECT
+   105  ──replace with the mean────────►  45     ✗ WRONG
 ```
 
+**Why replacing with the mean is wrong:**
 > *"Imputing an outlier with a central value doesn't make sense. The central value is somewhere in Delhi, the outlier is in London."*
 
-Imputing an outlier with the mean causes a wide-ranging distribution change → **tampering, not manipulation** (§11).
+You'd be moving the value 60 years instead of 20 — a huge distribution change, which by §9's rules is **tampering**, not manipulation.
 
 ---
 
-## 21. Choose Your Battles — Is the Treatment Even Worth Doing?
+## 16. ⭐ Choose Your Battles — Is the Fix Even Worth Doing?
 
-The step most people skip sits **between** *"I found outliers"* and *"I treated outliers"*: **is it worth treating?**
+Most people go straight from *"I found outliers"* to *"I treated outliers."* **There is a step in between:** *is it worth it?*
 
 ### The arithmetic
-n = **500** observations, capped at **85**. The top 1 percentile = **5 people**:
+n = **500** rows, capping at **85**. The top 1% is **5 people**:
 
-| Value | Capped to | Deviation |
+| Value | Capped to | How far it moved |
 |---|---|---|
 | 87 | 85 | 2 |
 | 90 | 85 | 5 |
 | 92 | 85 | 7 |
 | 95 | 85 | 10 |
 | 105 | 85 | 20 |
-| | **Total** | **44** |
+| | **Total movement** | **44** |
 
 ```
-   Average distortion caused by this "groundbreaking" outlier treatment
+   Average distortion introduced across the dataset
 
-        =  44 / 500  =  0.088        ← not even 0.1
+        =  total movement / number of rows
+        =  44 / 500
+        =  0.088        ← not even 0.1
 ```
 
-**Will this change whether `Age` becomes an important variable in the model? No.**
+**Will 0.088 change whether `Age` matters in your model? No.** So don't do it.
 
-Compare with the salary demo in §7, where **one** value swung correlation by 37 points. *That* was worth treating.
+Now compare with §4, where **one** value swung correlation by **37 points**. *That* was worth treating.
 
 ### The rule
 ```
    ┌────────────────────────────────────────────────────────────────┐
-   │  BORDERLINE outliers  →  do NOTHING. You are wasting time.     │
+   │  BORDERLINE outliers  →  DO NOTHING. You are wasting time.      │
    │                                                                │
    │  EXTREME outliers     →  treat them: winsorize / cap /          │
    │                          categorise / dummy variable / drop     │
@@ -743,268 +750,273 @@ Compare with the salary demo in §7, where **one** value swung correlation by 37
 ```
 
 > *"There is no brownie point or Nobel Prize for treating outliers you found."*
+> *"You have to choose your battles. Don't fight every battle."*
 > *"Don't be a process-driven data scientist. Be a **thinking** data scientist."*
 
 ---
 
-# PART 2 — FROM EDA TO THE FIRST MODEL
+## 17. Scaling vs Transformation — Two Different Things
 
-## 22. Framing the Problem Statement and Picking the Target
+These get confused constantly. A student said *"so we take a log of it"* and was corrected: **that's transformation, not scaling.**
 
-He opened a real dataset — an **online retailer's customer data** — and made the class pick the target variable.
+| | What it does | Effect on the distribution's SHAPE |
+|---|---|---|
+| **Scaling** | Shrinks the **range** of values | **NO change to the shape** |
+| **Transformation** | Log, reciprocal, square root, Box-Cox | **Changes the shape — that's the entire point** |
 
-### The dataset
+**Why scaling exists:** if `Salary` runs 10–100 and `Age` runs 18–60, many algorithms will treat salary as "more important" purely because its numbers are bigger. Scaling puts every column on a comparable footing.
 
-| Column | Meaning |
-|---|---|
-| `CustomerID` | Identifier — not useful for modelling |
-| `Age` | Old / middle / young |
-| `Gender` | — |
-| `OwnHome` | Owns a home or not |
-| `Location` | **Near / far from a competitor's PHYSICAL store** |
-| `Married` | Marital status |
-| `Salary` | The customer's salary |
-| `Children` | Number of children in the household |
-| `History` | Past buying frequency (last year) |
-| `Catalogs` | Number of catalogs **the business sent** them |
-| `AmountSpent` | How much they have spent on your product (USD) |
+**Why transformation exists:** to pull a skewed column toward normality — subject to §9's warning about overdoing it.
 
-**Why `Location` matters:** if a furniture shop sits below your customer's apartment, they will walk down and look at it in person. If the nearest shop is 3–4 km away needing a car, auto or bus, they will buy online instead. → **Near a competitor = worse for an online seller.**
+### The two scalers
 
-### The elimination logic
+| Method | Formula | Output |
+|---|---|---|
+| **StandardScaler** | $(X - \mu)/\sigma$ | mean becomes **0**, SD becomes **1** |
+| **MinMaxScaler** | $(X - X_{min})/(X_{max} - X_{min})$ | everything squeezed into **0 to 1** |
 
-```
-   Columns 1–7  (Age, Gender, OwnHome, Married, Location, Salary, Children)
-        Q: as the business owner, is PREDICTING any of these useful to you?
-           "Can you give this customer a higher salary?"       → No
-           "Can you turn an old customer into a young one?"    → No
-        → ZERO control  →  these can only ever be PREDICTORS (X), never the target
-
-   Catalogs
-        → YOU decide how many to send.  100% control  →  not a target either
-
-   History, AmountSpent
-        → PARTIAL control: they have bought before, they will probably keep buying,
-          and you WANT to increase it  →  candidate targets
-
-        → AmountSpent WINS: it is revenue, and it is the thing you want to grow.
-          "He spends $100 today; tomorrow I want him to buy for $200."
-```
-
-### ⭐ The rule to memorise
-
-```
-   ┌────────────────────────────────────────────────────────────────────┐
-   │  Your TARGET variable is never something you control 0% of,        │
-   │  and never something you control 100% of.                          │
-   │                                                                    │
-   │  It is always the variable you have SOME control over and          │
-   │  WANT TO IMPROVE your control over.                                │
-   └────────────────────────────────────────────────────────────────────┘
-```
-
-> *"Because business wants results about only those things. The rest, they don't care."*
-
-### Why you need this skill
-Clients hand you a data dump and say *"do some analysis"* or *"predictive modelling karke do."* They will **not** tell you the target.
-
-> *"Do some analysis — I'll draw a bar graph and send it back to you. That is also analysis, right?"*
-
-### Answering Sridutt's "wrong data" question properly (cf. §13)
-Before touching Python you must establish:
-
-```
-   1. The PROBLEM STATEMENT
-   2. The TARGET VARIABLE
-   3. Whether the other variables plausibly explain it at all
-   4. Whether it is even WORTH investing the time
-   5. POC  →  stakeholder approval  →  sometimes a pilot
-                        │
-                        ▼
-   … and ONLY THEN your first line of  pd.read_csv()
-```
-
-> *"It's not about wrong or right data. It's about whether what you're trying to do is possible on this data or not."*
+> ⚠️ **Correction:** min-max was described in class as giving −1 to +1. The default `MinMaxScaler` gives **0 to 1** (a student said this correctly). You only get −1 to +1 by explicitly setting `feature_range=(-1,1)`.
 
 ---
 
-## 23. Train / Test Split
+## 18. Train/Test Split, and the Trap Called Data Leakage
 
-Belongs to feature engineering / extended preprocessing, before modelling. It exists because you cannot tell a client *"I built a model, seems like it'll work next time."* You need **validation**.
+### Why splitting exists
+You cannot tell a client *"I built a model, it seems like it'll work next time."* You need **evidence** that it works on data it has never seen. So you hide part of your data from the model and test on it afterwards.
 
 ```
-   Full data (1000 rows)
-        │   random, ROW-WISE split
-        │   (confirmed to Sumojit — nothing to do with columns)
+   Full data (say 1000 rows)
         │
-        ├────────────── 70% = 700 rows ──────────►  TRAIN → build the model
+        │  split RANDOMLY, by ROW
+        │  (nothing to do with columns — a question asked in class)
         │
-        └────────────── 30% = 300 rows ──────────►  TEST  → held out, unseen
+        ├──────────── 70%  =  700 rows ────────►  TRAIN — build the model on this
+        │
+        └──────────── 30%  =  300 rows ────────►  TEST  — locked away, unseen
 
-   Compare the error on TEST against the error on TRAIN:
-        similar  →  the model generalises to unseen data          ✓
-        worse    →  go back, fine-tune, or restart from EDA       ✗
+   Then compare the error on TEST against the error on TRAIN:
+
+        similar errors  →  the model generalises ✓
+        much worse on TEST  →  go back, fine-tune, or restart from EDA ✗
 ```
 
 | Question | Answer |
 |---|---|
-| **Why 70–30?** | Build on the bigger chunk, but don't shrink the validation set so far that validation becomes meaningless — *"strike a middle ground"* |
-| **Why random?** | *"If I make a biased split on my own, I will end up with spurious correlation"* (§14) |
+| **Why 70/30?** | Build on the larger chunk, but keep the test set big enough for the test to mean something — *"strike a middle ground"* |
+| **Why random?** | *"If I make a biased split on my own, I will end up with spurious correlation"* (§8) |
 
-> *"Model building is a tedious process. You go to the end, find something isn't working, and sometimes have to start from scratch."*
+### ⭐⭐ Data leakage — the mistake 90% of people make
 
----
+**Data leakage = information from the test set sneaking into the training process**, making your model look better than it really is.
 
-## 24. Data Leakage
-
-> *"Data leakage is a very, very, very critical thing. It comes from doing certain parts of EDA before splitting and certain parts after."*
-
-Standard scaling is $z = (X - \mu)/\sigma$ — it **uses the mean and SD of whatever data you feed it**.
-
-### Q&A — Meet (called *"a fantastic answer"*)
-If you normalise on all the data, information about the test rows flows into the transformation, so the model has effectively already seen part of the test set.
+Here's how it happens with scaling. `StandardScaler` computes $z = (X-\mu)/\sigma$ — it needs a mean and an SD, **calculated from whatever data you hand it**.
 
 ```
    ✗ WRONG                                  ✓ RIGHT
    ┌─────────────────────────┐              ┌─────────────────────────┐
-   │  scale the WHOLE dataset│              │  SPLIT  70 / 30         │
-   │  one μ, one σ from all  │              └────────────┬────────────┘
-   │  1000 rows              │                           │
-   └────────────┬────────────┘               scaler.fit(TRAIN)
-                │                            μ, σ from TRAIN ONLY
-          SPLIT 70 / 30                                  │
+   │ Scale the WHOLE dataset │              │  SPLIT first, 70 / 30   │
+   │ One μ and σ computed    │              └────────────┬────────────┘
+   │ from all 1000 rows      │                           │
+   └────────────┬────────────┘                  scaler.fit(TRAIN)
+                │                              μ and σ from TRAIN ONLY
+          THEN split 70/30                                │
                 │                            ┌───────────┴───────────┐
-   test rows already carry μ,σ               ▼                       ▼
-   influenced by the train rows      transform(TRAIN)        transform(TEST)
-                │                              (the same μ, σ)
-                ▼                                       │
-   test set is NOT unseen                               ▼
-   →  INVALID validation                     test set is genuinely unseen
-   →  "outputs better than I deserve"        →  HONEST validation
+                ▼                            ▼                       ▼
+   The test rows already influenced    transform(TRAIN)      transform(TEST)
+   the μ and σ used on train                  └──── same μ, σ ────┘
+                │                                        │
+                ▼                                        ▼
+   Test set is NOT truly unseen              Test set is genuinely unseen
+   →  your validation is MEANINGLESS          →  HONEST validation
+   →  "outputs better than I deserve"
 ```
 
-### The fit / transform rule
+### The rule in code
 ```python
 scaler = StandardScaler()
 X_train_s = scaler.fit_transform(X_train)   # fit ONCE, on train only
 X_test_s  = scaler.transform(X_test)        # transform only — never fit again
 ```
 
+**Two words to keep straight:**
+- **`fit`** = *learn* the parameters (compute μ and σ)
+- **`transform`** = *apply* them to the numbers
+
 > *"I will fit only once on train. With that result, I will transform both train and test — NOT fit separately and transform separately. **90% of people make a mistake there.**"*
 
-### Homework he set deliberately
-**Why must the fit happen on train only?** Think it through after the next couple of sessions — he withheld the full answer on purpose.
+### 🏠 Homework he set deliberately
+**Why must the fit happen on train only?** He withheld the full answer on purpose — think it through over the next couple of sessions.
 
-*(Working answer to check yourself against: `transform` must be the identical function for both sets, and it must be derived only from information the model is allowed to have. Re-fitting on test both leaks test statistics and applies a different mapping, so train and test values would no longer be comparable.)*
-
----
-
-## 25. Scaling vs Transformation
-
-### Q&A — Deepak Bobade: *"So we take a log of it?"*
-→ **Corrected: that is transformation, not scaling.** They are different operations with different purposes.
-
-| | Operations | Effect on the distribution |
-|---|---|---|
-| **Scaling** | Standard scaler, min-max | **Shrinks the range; the distribution shape does NOT change** |
-| **Transformation** | Log, reciprocal, square root, **Box-Cox** | **Changes the distribution** — that is the entire point |
-
-### The two scalers
-
-| Method | Formula | Output range |
-|---|---|---|
-| **StandardScaler** | $(X - \mu)/\sigma$ | mean 0, SD 1 → typically **−3 … +3** for clean normal data |
-| **MinMaxScaler** | $(X - X_{min})/(X_{max} - X_{min})$ | **0 … 1** |
-
-> ⚠️ **Correction:** he said min-max gives **−1 to +1**. The default `MinMaxScaler` maps to **[0, 1]** (Lokesh actually said "0 to 1" in the class). You only get `[−1, 1]` by explicitly setting `feature_range=(-1,1)`.
+*(A working answer to check yourself against: `transform` must be the exact same function applied to both sets, and it must be built only from information the model is allowed to see. Re-fitting on test does two bad things at once — it leaks test statistics, and it applies a *different* mapping, so a value of 30 in train and 30 in test would no longer become the same scaled number.)*
 
 ---
 
-## 26. Using Scaling to Audit Your Own Outlier Treatment
+## 19. ⭐⭐ Using Scaling to Check Your Own Outlier Work
 
-**This is the "connect the concepts" showpiece of the session.**
+This was the payoff of the session — an example of **connecting two concepts to get something neither gives you alone.**
 
-### Step 1 — The standard normal distribution
+### Step 1 — What the standard scaler actually produces
 $$z = \frac{X - \mu}{\sigma}$$
 
-That is the standard scaler formula. `z` follows the **standard normal distribution: mean = 0, SD = 1.**
+The output follows the **standard normal distribution: mean = 0, SD = 1.** (That's the definition of "standard" normal.)
 
-### Step 2 — Plug the 3-sigma rule into it
-$$\text{mean} \pm 3 \cdot SD \;\longrightarrow\; 0 \pm 3 \cdot 1 \;\longrightarrow\; [-3, +3]$$
+### Step 2 — Apply the 3-sigma rule to it
+From §13, almost all data lies within mean ± 3·SD. Substitute mean = 0 and SD = 1:
 
-### Step 3 — The diagnostic (Meet got this: *"plus 3, minus 3"*)
+$$0 \pm 3 \times 1 \;\longrightarrow\; [-3, +3]$$
 
-> **For a variable that is (a) normally distributed and (b) already outlier-treated, all post-standard-scaling values must lie between −3 and +3.**
+### Step 3 — The diagnostic
+
+> **For a column that is (a) normally distributed and (b) already outlier-treated, every value after standard scaling must fall between −3 and +3.**
 >
-> **If you see values outside ±3, your outlier treatment was wrong or incomplete. Go back and use a better method.**
+> **If any value falls outside ±3, your outlier treatment was wrong or incomplete. Go back and use a better method.**
 
 ```
-   Normal variable + outlier treatment done
+   A normal column, outlier treatment already done
                     │
                     ▼
             standard-scale it
                     │
                     ▼
-   ┌──────────────────────────────────────────────────┐
-   │  all values within −3 … +3   →  treatment sound ✓ │
-   │  any value outside −3 … +3   →  treatment wrong ✗ │
-   └──────────────────────────────────────────────────┘
+   ┌──────────────────────────────────────────────────────┐
+   │  all values within  −3 … +3   →  treatment was sound ✓│
+   │  any value outside  −3 … +3   →  treatment was wrong ✗│
+   └──────────────────────────────────────────────────────┘
 
-   The logic: the distribution was GIVEN to you — you cannot change that.
-   The ONLY thing YOU did was the outlier treatment.
-   So a violation can only be your treatment's fault.
+   WHY this pins the blame on you:
+     The distribution was GIVEN to you — you didn't choose it.
+     The ONLY thing YOU did was the outlier treatment.
+     So a violation can only be your treatment's fault.
 ```
 
-### The two jobs scaling does beyond rescaling
+### So scaling does three jobs, not one
 | # | Job |
 |---|---|
-| 1 | Correctly sequenced, it is where **data leakage** is avoided (§24) |
-| 2 | It **back-validates** your outlier and missing-value treatment (this section) |
+| 1 | Put columns on a comparable numeric footing (the obvious one) |
+| 2 | Sequenced correctly, it's where **data leakage** is avoided (§18) |
+| 3 | It **back-checks** your outlier treatment (this section) |
 
 > *"This is how we connect concepts. Scaling is not a process limited to itself — it can help you assess other things in your EDA, which makes your EDA more robust."*
 
 ---
 
-## 27. The Complete End-to-End Pipeline
+## 20. Before Any of This — Framing the Problem and Picking the Target
 
-### Q&A — Abhishek Diwan: *"Can you just take us through the journey of how you would go about, from the raw data, and then check all the steps to come up with the model?"*
+Everything above assumes you know **what you're predicting**. Clients don't tell you. They hand you a file and say *"do some analysis."*
+
+> *"Do some analysis — I'll draw a bar graph and send it back to you. That is also analysis, right?"*
+
+### The dataset used in class — an online retailer's customers
+
+| Column | Meaning |
+|---|---|
+| `CustomerID` | Just an identifier — useless for modelling |
+| `Age` | Old / middle / young |
+| `Gender` | — |
+| `OwnHome` | Owns a home or not |
+| `Married` | Marital status |
+| `Location` | **Near or far from a competitor's physical store** |
+| `Salary` | The customer's salary |
+| `Children` | Number of children in the household |
+| `History` | How often they bought last year |
+| `Catalogs` | How many catalogs **the business sent them** |
+| `AmountSpent` | How much they spent on your product (USD) |
+
+**Why `Location` matters:** if a furniture shop is downstairs from your customer, they'll walk down and see it in person. If the nearest one is 3–4 km away needing a car or bus, they'll buy online. **Near a competitor = bad for an online seller.**
+
+### How to eliminate candidates
+
+```
+   Age, Gender, OwnHome, Married, Location, Salary, Children
+        Ask: as the business owner, would PREDICTING this help me?
+             "Can you give this customer a higher salary?"      → No
+             "Can you make an old customer young?"              → No
+        →  ZERO control  →  these can only ever be PREDICTORS (X)
+
+   Catalogs
+        →  YOU decide how many to send.  100% control  →  not a target either
+
+   History, AmountSpent
+        →  PARTIAL control: they've bought before, they'll likely buy again,
+           and you WANT that number to go up   →  candidate targets
+
+        →  AmountSpent WINS. It's revenue, and it's what you want to grow:
+           "He spends $100 today; tomorrow I want him to buy for $200."
+```
+
+### ⭐ The rule to memorise
+
+```
+   ┌──────────────────────────────────────────────────────────────────┐
+   │  Your TARGET is never something you control 0% of,               │
+   │  and never something you control 100% of.                        │
+   │                                                                  │
+   │  It is always the thing you have SOME control over               │
+   │  and WANT MORE control over.                                     │
+   └──────────────────────────────────────────────────────────────────┘
+```
+
+> *"Because business wants results about only those things. The rest, they don't care."*
+
+### What must happen before your first line of code
+
+```
+   1. Agree the PROBLEM STATEMENT           ── with stakeholders,
+   2. Identify the TARGET VARIABLE             "you cannot do it alone"
+   3. Check the other columns could plausibly explain it
+   4. Decide whether it's even WORTH the time
+   5. Proof of concept  →  stakeholder approval  →  sometimes a pilot
+                            │
+                            ▼
+   … and ONLY NOW your first  pd.read_csv()
+```
+
+> *"It's not about wrong or right data. It's about whether what you're trying to do is possible on this data or not."*
+
+---
+
+## 21. ⭐⭐⭐ The Complete Pipeline — Raw Data to First Model
+
+This was the answer to a direct question in class: *"take us through the journey from the raw data to the model."* **This is your checklist.**
 
 ```
  ┌───────────────────────────────────────────────────────────────────────────┐
  │  0. GET THE DATA                                                          │
  ├───────────────────────────────────────────────────────────────────────────┤
- │  1. FRAME THE PROBLEM STATEMENT + IDENTIFY THE TARGET VARIABLE     (§22)   │
- │     → in discussion with stakeholders. "You cannot do it alone."          │
+ │  1. FRAME THE PROBLEM + IDENTIFY THE TARGET VARIABLE               (§20)   │
+ │     With stakeholders. "You cannot do it alone."                          │
  ├───────────────────────────────────────────────────────────────────────────┤
- │  2. df.describe()  →  central tendency, dispersion, skewness, quartiles,   │
- │     percentiles. Read the DISTRIBUTIONS. How good or bad is each variable? │
- │     KEEP A PEN AND PAPER. Number every insight 1, 2, 3, 4 as you go.      │
+ │  2. df.describe()  →  centre, spread, skewness, quartiles, percentiles     │
+ │     Read the DISTRIBUTIONS. How healthy is each column?            (§3)    │
+ │     ✏️ KEEP PEN AND PAPER. Number every insight 1, 2, 3, 4…               │
  ├───────────────────────────────────────────────────────────────────────────┤
- │  3. UNIVARIATE ANALYSIS — histograms, box plots, crosstabs (categorical)   │
+ │  3. UNIVARIATE ANALYSIS — histograms, box plots, crosstabs          (§14)  │
  ├───────────────────────────────────────────────────────────────────────────┤
- │  4. BIVARIATE → MULTIVARIATE — scatterplots (min 49 for 50 vars, §17),     │
- │     heatmaps, pair plots if needed.                                       │
- │     CROSS-CHECK these insights against your step-2 describe insights.     │
- │     Matching → good. Not matching → re-look.                              │
+ │  4. BIVARIATE → MULTIVARIATE — scatterplots (min 49 for 50 cols),   (§10)  │
+ │     heatmaps, pair plots if needed.                                (§11)  │
+ │     ✅ CROSS-CHECK against your step-2 insights.                          │
+ │        Matching → good. Not matching → look again.                        │
  ├───────────────────────────────────────────────────────────────────────────┤
- │  5. OUTLIERS + MISSING VALUES — find, judge worth (§21), treat.            │
- │     Order per §18. If not worth treating, leave them.                     │
+ │  5. OUTLIERS + MISSING VALUES                                (§12–16)      │
+ │     Find them → judge if treatment is worth it → treat.                   │
+ │     Order per §12. If not worth treating, LEAVE THEM.                     │
  ├───────────────────────────────────────────────────────────────────────────┤
- │  6. TRANSFORMATION / FEATURE ENGINEERING — only IF required.               │
+ │  6. TRANSFORMATION / FEATURE ENGINEERING — only IF required.        (§17)  │
  │     "Not mandatory. Every time you will not require this."                │
  ├───────────────────────────────────────────────────────────────────────────┤
- │  7. DUMMY VARIABLES / ONE-HOT ENCODING — categorical & string → numeric    │
- │     (mandatory: you cannot model on objects or strings)                   │
+ │  7. DUMMY VARIABLES / ONE-HOT ENCODING                                     │
+ │     Turn text categories into numbers. MANDATORY — you cannot model       │
+ │     on strings. ⚠️ This happens BEFORE the split.                        │
  ├───────────────────────────────────────────────────────────────────────────┤
- │  8. TRAIN / TEST SPLIT   (70 / 30, random, row-wise)               (§23)   │
+ │  8. TRAIN / TEST SPLIT — 70/30, random, row-wise                   (§18)  │
  ├───────────────────────────────────────────────────────────────────────────┤
- │  9. SCALE — numeric columns only, AFTER the split.                 (§24)   │
+ │  9. SCALE — numeric columns only, AFTER the split.                  (§18)  │
  │     fit on TRAIN → transform TRAIN and TEST.                             │
- │     Then CONCATENATE scaled-numeric + categorical-dummies,               │
+ │     Then CONCATENATE scaled-numeric + category-dummies,                  │
  │     separately for train and separately for test.                        │
  ├───────────────────────────────────────────────────────────────────────────┤
- │ 10. → This concatenated TRAIN set is "the data which is ready for your     │
- │      FIRST ITERATION of the model."                                       │
+ │ 10. → "This is the data which is ready for your FIRST ITERATION            │
+ │        of the model."                                                     │
  └───────────────────────────────────────────────────────────────────────────┘
                                     │
                                     ▼
@@ -1012,255 +1024,174 @@ $$\text{mean} \pm 3 \cdot SD \;\longrightarrow\; 0 \pm 3 \cdot 1 \;\longrightarr
                                     │
                                     ▼
  ┌───────────────────────────────────────────────────────────────────────────┐
- │ 11. Run the FULL model on TRAIN. Feature selection. Check every yardstick  │
- │     the model exposes.                                                    │
- │ 12. Loop: model ⇄ EDA, up and down, MANY times.                          │
- │ 13. ONLY once the trained model is FINAL and its variables are FIXED       │
- │     → compare against TEST.      ⚠️ NOT earlier. Not initially.           │
+ │ 11. Run the full model on TRAIN. Feature selection. Check every measure    │
+ │     the model gives you.                                                  │
+ │ 12. Loop between model and EDA — up and down, MANY times.                │
+ │ 13. ONLY when the model is FINAL and its variables are FIXED               │
+ │     →  compare against TEST.       ⚠️ NOT earlier. Not "just to peek."    │
  └───────────────────────────────────────────────────────────────────────────┘
 ```
 
-### ⭐ The ordering trap
-**Encoding and dummies come BEFORE the split. Scaling comes AFTER.** And prediction on test is the **last** thing you do, not something you peek at while tuning — he corrected Deepak Bobade on exactly this point.
+### ⭐ The two ordering traps
+| Trap | The rule |
+|---|---|
+| **Encoding vs scaling** | **Encoding/dummies BEFORE the split. Scaling AFTER the split.** |
+| **When to touch the test set** | **Last.** Not while tuning. A student was corrected on exactly this |
+
+### When is the model good enough?
+Asked in class. There is **no fixed number of iterations**. You work to **yardsticks** — a target accuracy, an error you must get under. And:
+
+> *"The model you build today, you will never build again in your life. Everything is unique — so every yardstick is unique."*
 
 ---
 
-## 28. When is the Model Good Enough?
+## 22. Practical Constraints (Q&A)
 
-### Q&A — Sai Gowtham: *"How many iterations until the model is good?"*
-- Not a fixed number of iterations. You comply with **yardsticks**: a target accuracy level, an error you must get below.
-- **Those yardsticks are not fixed — they change from model to model.**
-
-> *"That's the beauty of data science. The model you build today, you will never build again in your life. Everything is unique — so every yardstick is unique."*
-
----
-
-## 29. Practical Constraints Raised in Q&A
-
-### (a) Jithu: *"My data is millions of rows and Colab can't load it."*
+### (a) "My data has millions of rows and Colab can't load it."
 | Option | Verdict |
 |---|---|
-| **Colab paid tier** (~₹1000/month) | Gives GPU and parallel compute — his first suggestion |
-| **Sample down to 10k–50k rows** | ✓ Allowed — **but the sample must represent the population's distribution across ALL variables.** Otherwise pointless |
-| **Chunking / EDA on a subset** | ✓ Fine — **but it is a PILOT.** You cannot claim the full job is done |
-| **The full job** | Needs a **GPU or cloud support** |
+| **Paid Colab** (~₹1000/month) | Gives GPU and parallel compute — his first suggestion |
+| **Sample down to 10k–50k rows** | ✓ Allowed — **but the sample must mirror the full data's distribution on every column.** Otherwise it's pointless |
+| **Work on a subset / chunks** | ✓ Fine — **but call it a PILOT.** You cannot claim the job is done |
+| **The real job** | Needs a **GPU or cloud support** |
 
-### (b) Swagat Kumar Pattnaik: *"Can we use data reduction techniques?"*
+### (b) "Can we use data reduction techniques?"
 > *"Short answer is yes — but with a lot of caveats. It's **not a resounding universal yes**."*
 
-It has its own plus and minus; a 30-minute discussion he didn't have time for. **Parked.**
+It has real trade-offs; a 30-minute discussion there wasn't time for. **Parked for later.**
 
-### (c) ⚠️ Sridutt — never upload client data to public LLMs
+### (c) ⚠️ Never upload client data to a public LLM
 > *"You upload your data on ChatGPT and all. **Please don't.**"*
 
-- He cited an **ongoing case against HSBC** after an employee did this, with a European-region fine quoted at **€20 million**. *(Treat the specifics as an unverified anecdote; the principle is not in doubt.)*
-- This is the domain of **Responsible AI / AI ethics**.
+An ongoing case against **HSBC** was cited, after an employee did this — with a European fine quoted at **€20 million**. *(Treat the specific numbers as an unverified anecdote; the principle is not in doubt.)* This falls under **Responsible AI / AI ethics.**
 
 > *"Thousands of people use ChatGPT because it's free. How many know how to use it? 1%. That's the entire problem."*
 
 ---
 
-## 30. How the Field Got Here
-
-### Q&A — Sridutt: *"Where is AI still lagging?"*
-
-```
-  ~1900s   t-tests, z-tests — two-sample comparisons (Galton, Fisher era)
-     │     "who is better, who is comparable"
-     ▼
-  ~1910s   ANOVA (Analysis of Variance) → multiple ANOVA
-     │     more variables, more storage
-     ▼
-  WW I     Need to OPTIMISE (rationing in Europe — how much meat/rice per family)
-     │     → REGRESSION: find Y with respect to X
-     ▼
-  WW II    the same trajectory continues
-     ▼
-  1973     Oil shock — Middle East embargo on the US
-     │     → monetary policy work; SAS (Statistical Analysis Software)
-     │       — "the precursor of Python"
-     ▼
-  1990s    DATA STORAGE BECOMES CHEAP   ← the real unlock
-     │     → proper ML: decision trees, boosting, bagging, clustering, forecasting
-     ▼
-  2000s    Deep neural networks, NLP
-     │     Social media (Facebook / Twitter / WhatsApp) + web scraping → data abundance
-     ▼
-  2011     NVIDIA GPUs → complex DL on non-numeric data: text, image, video, speech
-     ▼
-  2017     "Attention Is All You Need" (Google Brain) → TRANSFORMERS
-     │     ⭐ "If you don't understand transformers, you will not understand LLMs
-     │        at all. That is the gateway to large language models."
-     ▼
-  2025     Pre-trained LLMs. Nobody builds their own — costs ₹40–50 crore.
-     │     Only Google / Microsoft / Amazon / Apple build; everyone else adapts.
-     ▼
-  2024→    AGENTS. "Still experimental. Failing most of the times, then passing.
-           Still a thing developing. It's still not there — but it started."
-```
-
-**The storage-cost anecdote:** in 1990, storing **1 GB** cost roughly **half the price of a Beetle car in New York**. Today a phone holds far more. *That* is why ML happened when it did, and not earlier.
-
-### ⚠️ Historical accuracy flags
-The pedagogical arc is fine; several details are not. Don't repeat these in an exam or interview:
-
-| Claim as told | Correct version |
-|---|---|
-| SAS was created after the 1973 oil shock as a US policy response | **SAS Institute: 1976, North Carolina State University** (Barr, Goodnight, Sall, Helwig), out of an agricultural-statistics project |
-| **Bill Gates and Steve Jobs interned at SAS** | **Never happened** |
-| **Reagan** was president in 1973 | **Nixon** was. Reagan: 1981–89 |
-| **Milton Friedman** chaired the Fed | He was an academic economist (Chicago). **Arthur Burns** chaired the Fed then |
-| **"Irving Fisher"** doing t-tests | **Ronald A. Fisher**, the statistician. Irving Fisher was an economist |
-| GPUs unlocked DL in 2011 | Usually dated to **CUDA (2006)** and **AlexNet (2012)** |
-
----
-
-## 31. The Building Metaphor — What to Actually Be Good At
+## 23. What to Actually Be Good At
 
 ```
         ┌────────────────────────────────────────────────┐
-        │  AGENTIC AI                                    │  ← still under
-        │                                                │    construction
+        │  AGENTIC AI                                    │  ← still
+        │                                                │    experimental
         ├────────────────────────────────────────────────┤
         │  GENERATIVE AI / LLMs                          │  ← gated by
         │                                                │    TRANSFORMERS
         ├────────────────────────────────────────────────┤
         │  DEEP LEARNING   +   NLP        FIRST FLOOR    │
-        │                                                │
         ├────────────────────────────────────────────────┤
         │  MACHINE LEARNING               GROUND FLOOR   │  ⭐
-        │                                                │
         ╞════════════════════════════════════════════════╡
         │  STATISTICS  →  EDA             FOUNDATION     │  ⭐⭐ this session
         └────────────────────────────────────────────────┘
         ////////////////////////////////////////////////////
 ```
 
-> *"These three are the blocks — especially **ML is your ground floor**, **DL is your first floor**, along with **NLP**."*
-
 > *"If your ground floor and first floor are weak, no matter how tall a building you build, it will fall off."*
 
-> *"You need to be **very good with** your machine learning, you need to be **very good with** your deep learning and your NLP, if you have to **survive and thrive and be successful** in what we call as data science and AI today."*
+> *"You need to be **very good with** your machine learning, **very good with** your deep learning and your NLP, if you have to survive and thrive and be successful in what we call as data science and AI today."*
 
-Note the bar: not "familiar with" but **"very good with"** — said twice. The GenAI layer at the top is **not a shortcut**; the ML and DL/NLP floors are where the actual competence lives.
+Note the bar: not *"familiar with"* but **"very good with"** — said twice. **The GenAI layer at the top is not a shortcut.** And the gateway to LLMs is **transformers** — *"if you don't understand transformers, you will not understand LLMs at all."*
 
 ---
 
-## 32. Consolidated Summary Table — Every Technique Introduced
+## 24. Consolidated Summary Table — Every Technique
 
-| Technique | Purpose | Changes the distribution? | When in the pipeline | Key caveat |
+| Technique | What it's for | Changes the distribution? | Where in the pipeline | The one thing to remember |
 |---|---|---|---|---|
-| **`describe()` / descriptive stats** | Understand each variable | No | Step 2 | Compare mean vs median for free normality info |
-| **Univariate plots** (histogram, box plot) | Find single-variable outliers | No | Step 3 | **Cannot see bivariate outliers** |
-| **Heatmap** | Correlation **numbers** | No | Step 4 | Doesn't show *which* points misbehave |
-| **Scatterplot** | Find **bivariate outliers** | No | Step 4 | **Minimum N−1 plots** (49 for 50 vars) |
-| **Missing-value imputation** (mean/median) | Fill gaps | Yes — check before/after | Step 5 | **Treat outliers FIRST** if using mean/median |
-| **Binning / categorising / MICE** | Fill gaps | Yes — check before/after | Step 5 | Order vs outliers is then irrelevant |
+| **`describe()`** | Understand each column | No | Step 2 | mean vs median = free normality check |
+| **Histogram / box plot** | Find **univariate** outliers | No | Step 3 | **Blind to bivariate outliers** |
+| **Heatmap** | Correlation **numbers** | No | Step 4 | Doesn't show *which rows* misbehave |
+| **Scatterplot** | Find **bivariate** outliers | No | Step 4 | **Minimum (N−1) plots** — 49 for 50 columns |
+| **Mean/median imputation** | Fill gaps | Yes — check before/after | Step 5 | **Treat outliers FIRST** |
+| **Binning / MICE / interpolation** | Fill gaps | Yes — check before/after | Step 5 | Then outlier order doesn't matter |
 | **Winsorization / capping** | Treat outliers | Yes — check before/after | Step 5 | Cap to the **percentile**, never the mean |
-| **Transformation** (log, reciprocal, sqrt, Box-Cox) | Reshape a variable | **YES — that's the point** | Step 6, optional | Don't force normality (§11) |
-| **One-hot encoding / dummies** | Categorical → numeric | n/a | Step 7, **before split** | Mandatory — can't model on strings |
-| **Train/test split** | Enable validation | No | Step 8 | Random, **row-wise**, 70/30 |
-| **StandardScaler** | Rescale to mean 0, SD 1 | **NO** | Step 9, **after split** | fit on TRAIN only; also **audits outlier treatment** via ±3 |
-| **MinMaxScaler** | Rescale to 0–1 | **NO** | Step 9, **after split** | Default range is **0 to 1** |
+| **Transformation** (log, sqrt, Box-Cox) | Reshape a column | **YES — that's the point** | Step 6, optional | Don't force normality (§9) |
+| **One-hot encoding** | Text → numbers | n/a | Step 7, **before split** | Mandatory; can't model on strings |
+| **Train/test split** | Enable honest validation | No | Step 8 | Random, **row-wise**, 70/30 |
+| **StandardScaler** | mean 0, SD 1 | **No** | Step 9, **after split** | `fit` on TRAIN only; also **audits outliers** via ±3 |
+| **MinMaxScaler** | Squeeze to 0–1 | **No** | Step 9, **after split** | Default range is **0 to 1** |
 
 ---
 
-## 33. Study Roadmap and Habits
+## 25. Your Study Plan and Working Habits
 
 ### Study priorities, in his explicit order
-| # | Topic | Why |
+| # | Topic | Why it's on the list |
 |---|---|---|
 | **1** | **Hypothesis testing** | *"The most important parts of regression and time series are all built on hypothesis testing"* |
-| **2** | **Probability distributions** — binomial (discrete), normal + **standard normal** (continuous) | Binomial + **odds** → logistic regression. Normal/standard normal → all of EDA, outlier rules, scaling interpretation |
-| **3** | **Theory of estimation** — point, interval, **Maximum Likelihood Estimation** | *"Logistic regression uses MLE. If you don't understand that, you don't understand logistic"* |
-| **+** | Basic probability (not axiomatic), sampling, **covariance** | Feeds 1–3; covariance underpins the correlation formula |
+| **2** | **Probability distributions** — binomial, normal, **standard normal** | Binomial + odds → logistic regression. Normal → all of EDA and outlier rules |
+| **3** | **Estimation theory** — point, interval, **MLE** | *"Logistic regression uses MLE. If you don't understand that, you don't understand logistic"* |
+| **+** | Basic probability, sampling, **covariance** | Feeds 1–3; covariance sits under the correlation formula |
 
-**Later, and hardest: time series forecasting** — needs both statistics *and* linear regression to be top-notch. *"It takes years for people to master it."*
+**Hardest, save for later: time series forecasting.** Needs both statistics *and* linear regression to be solid. *"It takes years for people to master it."*
 
 > *"I learn statistics today and in 6 months I'm building an LLM — it doesn't happen. You can't. It's a serious subject. Give it time."*
 
-### Habits to adopt starting now
+### Seven habits to start now
 ```
    1. PEN AND PAPER beside you during EDA. Number every insight.
       "If you don't write it down, later it's all a fish market —
        you won't remember what connects to whom."
 
-   2. BEFORE / AFTER distribution check on every single operation.        (§11)
+   2. CHECK the distribution BEFORE and AFTER every operation.        (§9)
 
-   3. PLOT every predictor against the target — minimum N−1 scatterplots. (§17)
+   3. PLOT every predictor against the target — minimum (N−1) plots.  (§11)
 
-   4. ASK "is this outlier worth treating?" BEFORE treating it.           (§21)
+   4. ASK "is this outlier worth treating?" before treating it.       (§16)
 
-   5. ASK "who are these people?" (domain context) before calling a
-      value wrong.                                                       (§20)
+   5. ASK "who are these people?" before calling a value wrong.       (§15)
 
-   6. NEVER upload client data to a public LLM.                          (§29c)
+   6. NEVER upload client data to a public LLM.                       (§22c)
 
-   7. Aim for 5 INFERENCES PER OUTPUT, not 1 inference per 10 lines of code.
+   7. Aim for 5 INFERENCES PER OUTPUT — not 1 inference per 10 lines of code.
 ```
 
 ---
 
-## 34. Verbatim Quote Bank
+## 26. The Ten Lines Worth Memorising
 
-Kept for accuracy — these are the lines that carry the actual teaching.
-
-1. *"70% of a project's time typically goes to EDA."*
-2. *"There are no shortcuts in data science. Don't take any of them — it doesn't lead you anywhere."*
-3. *"There are hundreds and thousands of people doing machine learning in the industry. Very few do it **properly**."*
-4. *"There is a very fine line between manipulating and tampering."*
-5. *"A very good result doesn't necessarily mean a right result. In data science, a **correct** result is more important than a **good** result."*
-6. *"Give me 75% accuracy sustainable over 6 months in production, I'm happy. 95% sustainable for 7 days — I will not take it, I will not make it billable."*
-7. *"Spurious correlation happens when you yourself are subconsciously biased even before you build a model. And that is the biggest problem we data scientists suffer from — because we are human beings, we are not machines."*
-8. *"A smart data scientist doesn't write 100 lines of code. They write 20 lines, but draw 5 inferences from one output."*
-9. *"Don't be a process-driven data scientist. Be a **thinking** data scientist."*
-10. *"You only become a good data scientist if you are a perfectionist."*
-11. *"There is no brownie point or Nobel Prize for treating outliers you found."*
-12. *"You have to choose your battles. Don't fight every battle."*
-13. *"Finding bivariate outliers is more important than finding univariate outliers."*
-14. *"Your target variable is never one you don't control at all, and never one you control fully. It's always the one you have some control over but want to improve your control over."*
-15. *"If you don't know stats, you don't know data science. Full stop."*
-16. *"One is statistics, two is statistics, three is statistics."*
-17. *"Definition, formula — that is college. Done. Now ask: where does this fit in ML, and how is it connected — and disconnected — from everything else."*
-18. *"This is how we connect concepts."*
-19. *"If it fails, you have to solve it. And to solve it you need to know **where** it failed."*
-20. *"I learn statistics today and in 6 months I'm building an LLM — it doesn't happen. You can't. It's a serious subject. Give it time."*
-21. *"Coding has become a school kid's job. The make-or-break is not there — it's somewhere else."*
-22. *"If you find outliers and see they are borderline outliers, don't do anything to them."*
-23. *"The model you build today, you will never build again in your life. Everything is unique — so every yardstick is unique."*
-24. *"If your ground floor and first floor are weak, no matter how tall a building you build, it will fall off."*
-25. *"These three are the blocks — especially ML is your ground floor, DL is your first floor, along with NLP."*
-26. *"Because that is **the gateway to large language text models**."* (why NLP sits on the same tier as DL)
-27. *"Agents have been failing most of the times, then passing, to be honest. So it is still a thing developing. **It's still not there.** It started, right?"*
-28. *"You need a fairly decent understanding of **statistics** in terms of getting through to **EDA**."*
-29. *"It's a temptation of having biryani every day. Not good for your health."* (on forcing normality)
-30. *"Imputing an outlier with a central value doesn't make sense. The central value is somewhere in Delhi, the outlier is in London."*
-31. *"That's the First World War. The Second World War starts after that."* (on reaching the first model iteration)
-32. *"What I tried is that… **for you to connect a few things**. More than that, what I hope is that you sort of **enjoyed** the part. That is most important for me."*
+1. *"There are no shortcuts in data science. Don't take any of them — it doesn't lead you anywhere."*
+2. *"There is a very fine line between manipulating and tampering."*
+3. *"A very good result doesn't necessarily mean a right result. In data science, a **correct** result is more important than a **good** result."*
+4. *"Give me 75% accuracy sustainable over 6 months in production, I'm happy. 95% sustainable for 7 days — I will not take it."*
+5. *"Spurious correlation happens when you yourself are subconsciously biased even before you build a model."*
+6. *"A smart data scientist doesn't write 100 lines of code. They write 20 lines, but draw 5 inferences from one output."*
+7. *"Don't be a process-driven data scientist. Be a **thinking** data scientist."*
+8. *"There is no brownie point or Nobel Prize for treating outliers you found."*
+9. *"Finding bivariate outliers is more important than finding univariate outliers."*
+10. *"This is how we connect concepts."*
 
 ---
 
-## 35. Administrative / Housekeeping Points
+## 27. Corrections to Carry Forward
 
-- **Materials he promised to share** (routed via the program team):
-  - The **EDA notebooks** — he has 4–5 of them
-  - A **PPT on missing-value and outlier best practices across 4–5 industries**
-- He planned **2 hours**; the session ran **≈ 2h 21m** and he cut discussion points at the end for time.
-- Session was in the **evening**; dated by the instructor as **2025** (*"as I speak in 2025"*).
-- The `.describe()` walkthrough on **real Python output** was cut for time — *"maybe we'll catch up at some other time."*
-- Jithu's Colab/big-data question was partly cut off by internet issues and should be re-raised.
-- He stated his objective plainly: **connecting concepts and enjoying the session**, above completeness of coverage.
+Four things stated in class that an exam or interview would mark differently:
+
+| # | As said in class | The precise version |
+|---|---|---|
+| **1** | mean ± 3σ covering 99.73% is **"Chebyshev's inequality"** | That's the **empirical rule** (normal distributions only). **Chebyshev** gives **≥ 88.9%** for *any* distribution. The caveat given was right; the name was loose (§13) |
+| **2** | **MinMaxScaler** outputs **−1 to +1** | Default is **0 to 1**. `feature_range=(-1,1)` is opt-in (§17) |
+| **3** | **SAS** was created as a response to the 1973 oil shock, and **Gates/Jobs interned there** | **SAS Institute: 1976, North Carolina State University**, out of an agricultural-statistics project. Gates and Jobs never interned there |
+| **4** | **"Irving Fisher"** developed the t-test | **Ronald A. Fisher**, the statistician. Irving Fisher was an economist — different person |
 
 ---
 
-## 36. Topics Explicitly Deferred to Later Sessions
+## 28. Topics Deferred to Later Sessions
 
-1. **Data reduction techniques** — the plusses and minuses (~30-minute discussion, parked)
-2. **Heteroscedasticity** — bivariate outliers are its main source; deferred to the linear-regression session
-3. **Covariance → correlation** derivation (self-study)
-4. **Why fit the scaler on train only** — deliberate thinking homework, answer withheld (§24)
-5. **One-hot encoding / dummy variables** — skipped in the demo, coming in feature engineering, *"maybe tomorrow itself"*
+1. **Why we fit the scaler on train only** — 🏠 deliberate thinking homework, answer withheld (§18)
+2. **One-hot encoding / dummy variables** — skipped in the demo; coming in feature engineering
+3. **Heteroscedasticity** — bivariate outliers are its main cause; deferred to linear regression (§10)
+4. **Covariance → correlation** derivation — self-study (§7)
+5. **Data reduction techniques** — parked, ~30-minute discussion (§22b)
 6. **`.describe()` on real Python output** — ran out of time
-7. **Hypothesis testing, probability distributions, estimation theory / MLE** — self-study priorities (§33)
-8. **Time series forecasting** — the hardest topic; needs statistics and linear regression both solid first
-9. **Transformers** — the gateway to LLMs, and the single most important thing to understand later (§30)
+7. **Hypothesis testing, probability distributions, estimation/MLE** — self-study priorities (§25)
+8. **Time series forecasting** — hardest topic; needs statistics + regression solid first
+9. **Transformers** — the gateway to LLMs, the most important thing to understand later (§23)
+
+### Materials promised
+- The **EDA notebooks** (he has 4–5)
+- A **PPT on missing-value and outlier best practices across 4–5 industries**
+
+Both to be shared via the program team.
